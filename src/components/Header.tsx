@@ -1,10 +1,11 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Home, User, LogOut } from 'lucide-react';
+import { Home, User, LogOut, Plus } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useNavigate } from 'react-router-dom';
 
 interface HeaderProps {
   onAuthClick: (type: 'login' | 'signup') => void;
@@ -14,9 +15,19 @@ const Header: React.FC<HeaderProps> = ({ onAuthClick }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const isMobile = useIsMobile();
   const { user, signOut, loading } = useAuth();
+  const navigate = useNavigate();
 
   const handleSignOut = async () => {
     await signOut();
+    setIsMenuOpen(false);
+  };
+
+  const handleListProperty = () => {
+    if (!user) {
+      onAuthClick('signup');
+    } else {
+      navigate('/list-property');
+    }
     setIsMenuOpen(false);
   };
 
@@ -31,7 +42,7 @@ const Header: React.FC<HeaderProps> = ({ onAuthClick }) => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex items-center">
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/')}>
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                 <Home className="w-5 h-5 text-white" />
               </div>
@@ -73,10 +84,11 @@ const Header: React.FC<HeaderProps> = ({ onAuthClick }) => {
                           Login
                         </Button>
                         <Button
-                          onClick={() => onAuthClick('signup')}
+                          onClick={handleListProperty}
                           className="bg-primary hover:bg-primary-dark text-white"
                         >
-                          Get Started
+                          <Plus className="w-4 h-4 mr-2" />
+                          List Property
                         </Button>
                       </>
                     )}
@@ -85,6 +97,13 @@ const Header: React.FC<HeaderProps> = ({ onAuthClick }) => {
                   <>
                     {!isMobile && (
                       <div className="flex items-center space-x-3">
+                        <Button
+                          onClick={handleListProperty}
+                          className="bg-primary hover:bg-primary-dark text-white"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          List Property
+                        </Button>
                         <span className="text-sm text-gray-600">
                           Welcome back!
                         </span>
@@ -157,21 +176,31 @@ const Header: React.FC<HeaderProps> = ({ onAuthClick }) => {
                       Login
                     </Button>
                     <Button
-                      onClick={() => { onAuthClick('signup'); setIsMenuOpen(false); }}
+                      onClick={handleListProperty}
                       className="w-full bg-primary hover:bg-primary-dark text-white"
                     >
-                      Get Started
+                      <Plus className="w-4 h-4 mr-2" />
+                      List Property
                     </Button>
                   </>
                 ) : (
-                  <Button
-                    variant="outline"
-                    onClick={handleSignOut}
-                    className="w-full"
-                  >
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Sign Out
-                  </Button>
+                  <>
+                    <Button
+                      onClick={handleListProperty}
+                      className="w-full bg-primary hover:bg-primary-dark text-white"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      List Property
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleSignOut}
+                      className="w-full"
+                    >
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Sign Out
+                    </Button>
+                  </>
                 )}
               </div>
             </div>

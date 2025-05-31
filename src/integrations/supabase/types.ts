@@ -9,6 +9,41 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      listing_additional_fees: {
+        Row: {
+          amount: number
+          created_at: string | null
+          fee_name: string
+          frequency: string
+          id: string
+          listing_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          fee_name: string
+          frequency: string
+          id?: string
+          listing_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          fee_name?: string
+          frequency?: string
+          id?: string
+          listing_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_additional_fees_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "property_listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           bio: string | null
@@ -48,6 +83,184 @@ export type Database = {
         }
         Relationships: []
       }
+      property_inquiries: {
+        Row: {
+          created_at: string | null
+          id: string
+          listing_id: string
+          message: string
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          listing_id: string
+          message: string
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          listing_id?: string
+          message?: string
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_inquiries_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "property_listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_listings: {
+        Row: {
+          amenities: string[] | null
+          availability_date: string
+          bathrooms: number | null
+          bedrooms: number | null
+          broker_free: boolean | null
+          city: string
+          created_at: string | null
+          flexibility_notes: string | null
+          furnished_items: string[] | null
+          furnishing_status: Database["public"]["Enums"]["furnishing_status"]
+          house_rules: string | null
+          id: string
+          landlord_id: string
+          latitude: number | null
+          longitude: number | null
+          maximum_stay_months: number | null
+          minimum_stay_months: number
+          monthly_rent: number
+          photos: string[] | null
+          pincode: string
+          property_type: Database["public"]["Enums"]["property_type"]
+          security_deposit: number
+          size_sqft: number | null
+          state: string
+          status: Database["public"]["Enums"]["listing_status"] | null
+          street_address: string
+          title: string | null
+          updated_at: string | null
+          utilities_included: string[] | null
+          video_tour_url: string | null
+          views_count: number | null
+        }
+        Insert: {
+          amenities?: string[] | null
+          availability_date: string
+          bathrooms?: number | null
+          bedrooms?: number | null
+          broker_free?: boolean | null
+          city: string
+          created_at?: string | null
+          flexibility_notes?: string | null
+          furnished_items?: string[] | null
+          furnishing_status: Database["public"]["Enums"]["furnishing_status"]
+          house_rules?: string | null
+          id?: string
+          landlord_id: string
+          latitude?: number | null
+          longitude?: number | null
+          maximum_stay_months?: number | null
+          minimum_stay_months?: number
+          monthly_rent: number
+          photos?: string[] | null
+          pincode: string
+          property_type: Database["public"]["Enums"]["property_type"]
+          security_deposit: number
+          size_sqft?: number | null
+          state: string
+          status?: Database["public"]["Enums"]["listing_status"] | null
+          street_address: string
+          title?: string | null
+          updated_at?: string | null
+          utilities_included?: string[] | null
+          video_tour_url?: string | null
+          views_count?: number | null
+        }
+        Update: {
+          amenities?: string[] | null
+          availability_date?: string
+          bathrooms?: number | null
+          bedrooms?: number | null
+          broker_free?: boolean | null
+          city?: string
+          created_at?: string | null
+          flexibility_notes?: string | null
+          furnished_items?: string[] | null
+          furnishing_status?: Database["public"]["Enums"]["furnishing_status"]
+          house_rules?: string | null
+          id?: string
+          landlord_id?: string
+          latitude?: number | null
+          longitude?: number | null
+          maximum_stay_months?: number | null
+          minimum_stay_months?: number
+          monthly_rent?: number
+          photos?: string[] | null
+          pincode?: string
+          property_type?: Database["public"]["Enums"]["property_type"]
+          security_deposit?: number
+          size_sqft?: number | null
+          state?: string
+          status?: Database["public"]["Enums"]["listing_status"] | null
+          street_address?: string
+          title?: string | null
+          updated_at?: string | null
+          utilities_included?: string[] | null
+          video_tour_url?: string | null
+          views_count?: number | null
+        }
+        Relationships: []
+      }
+      reviews: {
+        Row: {
+          comment: string | null
+          created_at: string | null
+          id: string
+          listing_id: string
+          rating: number
+          reviewee_id: string
+          reviewer_id: string
+          reviewer_type: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string | null
+          id?: string
+          listing_id: string
+          rating: number
+          reviewee_id: string
+          reviewer_id: string
+          reviewer_type: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string | null
+          id?: string
+          listing_id?: string
+          rating?: number
+          reviewee_id?: string
+          reviewer_id?: string
+          reviewer_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "property_listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -56,7 +269,20 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      furnishing_status: "unfurnished" | "semi_furnished" | "fully_furnished"
+      listing_status:
+        | "active"
+        | "inactive"
+        | "rented"
+        | "pending_review"
+        | "draft"
+      property_type:
+        | "single_room"
+        | "full_flat_1bhk"
+        | "full_flat_2bhk"
+        | "full_flat_3bhk_plus"
+        | "pg_hostel_room"
+        | "shared_room"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -171,6 +397,23 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      furnishing_status: ["unfurnished", "semi_furnished", "fully_furnished"],
+      listing_status: [
+        "active",
+        "inactive",
+        "rented",
+        "pending_review",
+        "draft",
+      ],
+      property_type: [
+        "single_room",
+        "full_flat_1bhk",
+        "full_flat_2bhk",
+        "full_flat_3bhk_plus",
+        "pg_hostel_room",
+        "shared_room",
+      ],
+    },
   },
 } as const
