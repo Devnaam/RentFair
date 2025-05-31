@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Eye, EyeOff, User, Home } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -17,6 +17,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialType }) =
   const [authType, setAuthType] = useState<'login' | 'signup'>(initialType);
   const [showPassword, setShowPassword] = useState(false);
   const [userRole, setUserRole] = useState<'tenant' | 'landlord'>('tenant');
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -25,15 +26,77 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialType }) =
     phone: ''
   });
 
+  const { signUp, signIn, signInWithGoogle } = useAuth();
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const validateForm = () => {
+    if (!formData.email || !formData.password) {
+      return 'Email and password are required';
+    }
+    
+    if (authType === 'signup') {
+      if (!formData.name || !formData.phone) {
+        return 'Name and phone are required';
+      }
+      if (formData.password !== formData.confirmPassword) {
+        return 'Passwords do not match';
+      }
+      if (formData.password.length < 6) {
+        return 'Password must be at least 6 characters';
+      }
+    }
+    
+    return null;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Auth submission:', { authType, userRole, formData });
-    // TODO: Implement authentication logic
-    onClose();
+    
+    const error = validateForm();
+    if (error) {
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      let result;
+      
+      if (authType === 'signup') {
+        result = await signUp(formData.email, formData.password, {
+          name: formData.name,
+          phone: formData.phone,
+          role: userRole
+        });
+      } else {
+        result = await signIn(formData.email, formData.password);
+      }
+
+      if (!result.error) {
+        onClose();
+        setFormData({
+          email: '',
+          password: '',
+          confirmPassword: '',
+          name: '',
+          phone: ''
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    try {
+      await signInWithGoogle();
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -70,12 +133,33 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialType }) =
             </button>
           </div>
 
+          {/* Google Sign In */}
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={handleGoogleSignIn}
+            disabled={loading}
+          >
+            Continue with Google
+          </Button>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-white px-2 text-muted-foreground">Or continue with email</span>
+            </div>
+          </div>
+
           {/* User Role Selection for Signup */}
           {authType === 'signup' && (
             <div className="space-y-2">
               <Label>I am a</Label>
               <div className="grid grid-cols-2 gap-3">
                 <button
+                  type="button"
                   onClick={() => setUserRole('tenant')}
                   className={`p-4 rounded-lg border-2 transition-colors ${
                     userRole === 'tenant'
@@ -87,6 +171,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialType }) =
                   <span className="text-sm font-medium">Tenant</span>
                 </button>
                 <button
+                  type="button"
                   onClick={() => setUserRole('landlord')}
                   className={`p-4 rounded-lg border-2 transition-colors ${
                     userRole === 'landlord'
@@ -178,8 +263,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialType }) =
               </div>
             )}
 
-            <Button type="submit" className="w-full bg-primary hover:bg-primary-dark text-white">
-              {authType === 'login' ? 'Login' : 'Create Account'}
+            <Button 
+              type="submit" 
+              className="w-full bg-primary hover:bg-primary-dark text-white"
+              disabled={loading}
+            >
+              {loading ? 'Please wait...' : (authType === 'login' ? 'Login' : 'Create Account')}
             </Button>
           </form>
 

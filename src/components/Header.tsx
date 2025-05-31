@@ -1,8 +1,10 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Home, User, Search, Plus } from 'lucide-react';
+import { Home, User, LogOut } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAuth } from '@/contexts/AuthContext';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 interface HeaderProps {
   onAuthClick: (type: 'login' | 'signup') => void;
@@ -11,6 +13,17 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ onAuthClick }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const isMobile = useIsMobile();
+  const { user, signOut, loading } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+    setIsMenuOpen(false);
+  };
+
+  const getUserInitials = (name: string | undefined) => {
+    if (!name) return 'U';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
@@ -46,21 +59,52 @@ const Header: React.FC<HeaderProps> = ({ onAuthClick }) => {
 
           {/* CTA Buttons */}
           <div className="flex items-center space-x-3">
-            {!isMobile && (
+            {!loading && (
               <>
-                <Button
-                  variant="ghost"
-                  onClick={() => onAuthClick('login')}
-                  className="text-gray-700 hover:text-primary"
-                >
-                  Login
-                </Button>
-                <Button
-                  onClick={() => onAuthClick('signup')}
-                  className="bg-primary hover:bg-primary-dark text-white"
-                >
-                  Get Started
-                </Button>
+                {!user ? (
+                  <>
+                    {!isMobile && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          onClick={() => onAuthClick('login')}
+                          className="text-gray-700 hover:text-primary"
+                        >
+                          Login
+                        </Button>
+                        <Button
+                          onClick={() => onAuthClick('signup')}
+                          className="bg-primary hover:bg-primary-dark text-white"
+                        >
+                          Get Started
+                        </Button>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {!isMobile && (
+                      <div className="flex items-center space-x-3">
+                        <span className="text-sm text-gray-600">
+                          Welcome back!
+                        </span>
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback className="bg-primary text-white text-xs">
+                            {getUserInitials(user.user_metadata?.name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleSignOut}
+                          className="text-gray-700 hover:text-primary"
+                        >
+                          <LogOut className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                )}
               </>
             )}
 
@@ -72,7 +116,15 @@ const Header: React.FC<HeaderProps> = ({ onAuthClick }) => {
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 className="md:hidden"
               >
-                <User className="w-5 h-5" />
+                {user ? (
+                  <Avatar className="h-6 w-6">
+                    <AvatarFallback className="bg-primary text-white text-xs">
+                      {getUserInitials(user.user_metadata?.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                ) : (
+                  <User className="w-5 h-5" />
+                )}
               </Button>
             )}
           </div>
@@ -95,19 +147,32 @@ const Header: React.FC<HeaderProps> = ({ onAuthClick }) => {
                 Safety
               </a>
               <div className="border-t border-gray-200 pt-3 space-y-2">
-                <Button
-                  variant="outline"
-                  onClick={() => onAuthClick('login')}
-                  className="w-full"
-                >
-                  Login
-                </Button>
-                <Button
-                  onClick={() => onAuthClick('signup')}
-                  className="w-full bg-primary hover:bg-primary-dark text-white"
-                >
-                  Get Started
-                </Button>
+                {!user ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={() => { onAuthClick('login'); setIsMenuOpen(false); }}
+                      className="w-full"
+                    >
+                      Login
+                    </Button>
+                    <Button
+                      onClick={() => { onAuthClick('signup'); setIsMenuOpen(false); }}
+                      className="w-full bg-primary hover:bg-primary-dark text-white"
+                    >
+                      Get Started
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    variant="outline"
+                    onClick={handleSignOut}
+                    className="w-full"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sign Out
+                  </Button>
+                )}
               </div>
             </div>
           </div>
