@@ -53,18 +53,30 @@ const Header: React.FC<HeaderProps> = ({ onAuthClick }) => {
           {/* Desktop Navigation */}
           {!isMobile && (
             <nav className="hidden md:flex items-center space-x-8">
-              <a href="#how-it-works" className="text-gray-700 hover:text-primary transition-colors">
-                How It Works
-              </a>
-              <a href="#for-tenants" className="text-gray-700 hover:text-primary transition-colors">
-                For Tenants
-              </a>
-              <a href="#for-landlords" className="text-gray-700 hover:text-primary transition-colors">
-                For Landlords
-              </a>
-              <a href="#safety" className="text-gray-700 hover:text-primary transition-colors">
+              <button 
+                onClick={() => navigate('/find-room')}
+                className="text-gray-700 hover:text-primary transition-colors"
+              >
+                Find Room
+              </button>
+              <button 
+                onClick={() => navigate('/about')}
+                className="text-gray-700 hover:text-primary transition-colors"
+              >
+                About
+              </button>
+              <button 
+                onClick={() => navigate('/safety')}
+                className="text-gray-700 hover:text-primary transition-colors"
+              >
                 Safety
-              </a>
+              </button>
+              <button 
+                onClick={() => navigate('/help')}
+                className="text-gray-700 hover:text-primary transition-colors"
+              >
+                Help
+              </button>
             </nav>
           )}
 
@@ -104,9 +116,13 @@ const Header: React.FC<HeaderProps> = ({ onAuthClick }) => {
                           <Plus className="w-4 h-4 mr-2" />
                           List Property
                         </Button>
-                        <span className="text-sm text-gray-600">
-                          Welcome back!
-                        </span>
+                        <Button
+                          variant="ghost"
+                          onClick={() => navigate('/dashboard')}
+                          className="text-gray-700 hover:text-primary"
+                        >
+                          Dashboard
+                        </Button>
                         <Avatar className="h-8 w-8">
                           <AvatarFallback className="bg-primary text-white text-xs">
                             {getUserInitials(user.user_metadata?.name)}
@@ -153,18 +169,30 @@ const Header: React.FC<HeaderProps> = ({ onAuthClick }) => {
         {isMobile && isMenuOpen && (
           <div className="md:hidden border-t border-gray-200 py-4">
             <div className="flex flex-col space-y-3">
-              <a href="#how-it-works" className="text-gray-700 hover:text-primary transition-colors py-2">
-                How It Works
-              </a>
-              <a href="#for-tenants" className="text-gray-700 hover:text-primary transition-colors py-2">
-                For Tenants
-              </a>
-              <a href="#for-landlords" className="text-gray-700 hover:text-primary transition-colors py-2">
-                For Landlords
-              </a>
-              <a href="#safety" className="text-gray-700 hover:text-primary transition-colors py-2">
+              <button 
+                onClick={() => { navigate('/find-room'); setIsMenuOpen(false); }}
+                className="text-gray-700 hover:text-primary transition-colors py-2 text-left"
+              >
+                Find Room
+              </button>
+              <button 
+                onClick={() => { navigate('/about'); setIsMenuOpen(false); }}
+                className="text-gray-700 hover:text-primary transition-colors py-2 text-left"
+              >
+                About
+              </button>
+              <button 
+                onClick={() => { navigate('/safety'); setIsMenuOpen(false); }}
+                className="text-gray-700 hover:text-primary transition-colors py-2 text-left"
+              >
                 Safety
-              </a>
+              </button>
+              <button 
+                onClick={() => { navigate('/help'); setIsMenuOpen(false); }}
+                className="text-gray-700 hover:text-primary transition-colors py-2 text-left"
+              >
+                Help
+              </button>
               <div className="border-t border-gray-200 pt-3 space-y-2">
                 {!user ? (
                   <>
@@ -191,6 +219,13 @@ const Header: React.FC<HeaderProps> = ({ onAuthClick }) => {
                     >
                       <Plus className="w-4 h-4 mr-2" />
                       List Property
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => { navigate('/dashboard'); setIsMenuOpen(false); }}
+                      className="w-full"
+                    >
+                      Dashboard
                     </Button>
                     <Button
                       variant="outline"

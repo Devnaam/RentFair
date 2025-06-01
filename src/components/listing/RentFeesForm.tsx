@@ -87,7 +87,7 @@ const RentFeesForm: React.FC<RentFeesFormProps> = ({ formData, updateFormData })
           <Input
             id="monthly_rent"
             type="number"
-            value={formData.monthly_rent || ''}
+            value={formData.monthly_rent?.toString() || ''}
             onChange={(e) => {
               const value = e.target.value;
               updateFormData({ monthly_rent: value ? Number(value) : null });
@@ -107,7 +107,7 @@ const RentFeesForm: React.FC<RentFeesFormProps> = ({ formData, updateFormData })
           <Input
             id="security_deposit"
             type="number"
-            value={formData.security_deposit || ''}
+            value={formData.security_deposit?.toString() || ''}
             onChange={(e) => {
               const value = e.target.value;
               updateFormData({ security_deposit: value ? Number(value) : null });
@@ -146,7 +146,7 @@ const RentFeesForm: React.FC<RentFeesFormProps> = ({ formData, updateFormData })
                 <Label className="text-xs">Amount (₹)</Label>
                 <Input
                   type="number"
-                  value={fee.amount.toString()}
+                  value={fee.amount?.toString() || ''}
                   onChange={(e) => updateAdditionalFee(index, 'amount', e.target.value)}
                   placeholder="Amount"
                   size="sm"

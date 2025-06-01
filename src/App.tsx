@@ -9,6 +9,9 @@ import Index from "./pages/Index";
 import ListProperty from "./pages/ListProperty";
 import FindRoom from "./pages/FindRoom";
 import Dashboard from "./pages/Dashboard";
+import Help from "./pages/Help";
+import Safety from "./pages/Safety";
+import About from "./pages/About";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +28,9 @@ const App = () => (
             <Route path="/list-property" element={<ListProperty />} />
             <Route path="/find-room" element={<FindRoom />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/help" element={<Help />} />
+            <Route path="/safety" element={<Safety />} />
+            <Route path="/about" element={<About />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

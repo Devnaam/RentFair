@@ -1,51 +1,54 @@
 
 import React from 'react';
 import { Home, MessageSquare, Shield, Star } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Footer: React.FC = () => {
+  const navigate = useNavigate();
+
   const footerSections = [
     {
       title: 'For Tenants',
       links: [
-        'Search Properties',
-        'How It Works',
-        'Safety Guidelines',
-        'Pricing Guide',
-        'Student Housing',
-        'Professional Housing'
+        { name: 'Search Properties', path: '/find-room' },
+        { name: 'How It Works', path: '/about' },
+        { name: 'Safety Guidelines', path: '/safety' },
+        { name: 'Help Center', path: '/help' },
+        { name: 'Student Housing', path: '/find-room' },
+        { name: 'Professional Housing', path: '/find-room' }
       ]
     },
     {
       title: 'For Landlords',
       links: [
-        'List Your Property',
-        'Landlord Resources',
-        'Verification Process',
-        'Success Stories',
-        'Pricing Tools',
-        'Property Management'
+        { name: 'List Your Property', path: '/list-property' },
+        { name: 'Landlord Resources', path: '/help' },
+        { name: 'Verification Process', path: '/safety' },
+        { name: 'Success Stories', path: '/about' },
+        { name: 'Dashboard', path: '/dashboard' },
+        { name: 'Property Management', path: '/dashboard' }
       ]
     },
     {
       title: 'Company',
       links: [
-        'About RentFair',
-        'Our Mission',
-        'Careers',
-        'Press',
-        'Contact Us',
-        'Blog'
+        { name: 'About RentFair', path: '/about' },
+        { name: 'Our Mission', path: '/about' },
+        { name: 'Safety', path: '/safety' },
+        { name: 'Contact Us', path: '/help' },
+        { name: 'Help Center', path: '/help' },
+        { name: 'Support', path: '/help' }
       ]
     },
     {
       title: 'Support',
       links: [
-        'Help Center',
-        'Customer Support',
-        'Report an Issue',
-        'Terms of Service',
-        'Privacy Policy',
-        'Community Guidelines'
+        { name: 'Help Center', path: '/help' },
+        { name: 'Customer Support', path: '/help' },
+        { name: 'Report an Issue', path: '/help' },
+        { name: 'Safety Guidelines', path: '/safety' },
+        { name: 'Privacy Policy', path: '/help' },
+        { name: 'Community Guidelines', path: '/safety' }
       ]
     }
   ];
@@ -56,7 +59,7 @@ const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-8">
           {/* Logo and Description */}
           <div className="lg:col-span-2">
-            <div className="flex items-center space-x-2 mb-4">
+            <div className="flex items-center space-x-2 mb-4 cursor-pointer" onClick={() => navigate('/')}>
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                 <Home className="w-5 h-5 text-white" />
               </div>
@@ -90,12 +93,12 @@ const Footer: React.FC = () => {
               <ul className="space-y-2">
                 {section.links.map((link, linkIndex) => (
                   <li key={linkIndex}>
-                    <a
-                      href="#"
-                      className="text-gray-400 hover:text-white transition-colors text-sm"
+                    <button
+                      onClick={() => navigate(link.path)}
+                      className="text-gray-400 hover:text-white transition-colors text-sm text-left"
                     >
-                      {link}
-                    </a>
+                      {link.name}
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -111,15 +114,24 @@ const Footer: React.FC = () => {
             </p>
             
             <div className="flex items-center space-x-6">
-              <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">
+              <button 
+                onClick={() => navigate('/help')}
+                className="text-gray-400 hover:text-white transition-colors text-sm"
+              >
                 Privacy Policy
-              </a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">
+              </button>
+              <button 
+                onClick={() => navigate('/help')}
+                className="text-gray-400 hover:text-white transition-colors text-sm"
+              >
                 Terms of Service
-              </a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">
+              </button>
+              <button 
+                onClick={() => navigate('/help')}
+                className="text-gray-400 hover:text-white transition-colors text-sm"
+              >
                 Cookie Policy
-              </a>
+              </button>
             </div>
           </div>
           
