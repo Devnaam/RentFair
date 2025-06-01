@@ -1,6 +1,7 @@
 
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { ListingFormData } from '@/types/listing';
 import { validateForm } from '@/utils/listingValidation';
@@ -8,8 +9,18 @@ import { validateForm } from '@/utils/listingValidation';
 export const useListingSubmission = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleSubmit = async (formData: ListingFormData, isDraft: boolean = false) => {
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Authentication Required",
+        description: "You must be logged in to create a listing."
+      });
+      return;
+    }
+
     if (!isDraft) {
       const validation = validateForm(formData);
       if (!validation.isValid) {
@@ -29,6 +40,7 @@ export const useListingSubmission = () => {
       const { data: listing, error: listingError } = await supabase
         .from('property_listings')
         .insert({
+          landlord_id: user.id,
           property_type: formData.property_type as any,
           street_address: formData.street_address,
           city: formData.city,
