@@ -59,7 +59,7 @@ const usePropertySearch = () => {
       ];
       
       if (validPropertyTypes.includes(searchFilters.propertyType)) {
-        query = query.eq('property_type', searchFilters.propertyType);
+        query = query.eq('property_type', searchFilters.propertyType as 'single_room' | 'shared_room' | 'full_flat_1bhk' | 'full_flat_2bhk' | 'pg_hostel_room' | 'full_flat_3bhk_plus');
       }
     }
 
