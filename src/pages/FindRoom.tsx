@@ -1,16 +1,20 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Header from '@/components/Header';
+import SearchResults from '@/components/SearchResults';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { MapPin, Wifi, Car, Home, Star, Heart } from 'lucide-react';
 import AuthModal from '@/components/AuthModal';
+import usePropertySearch, { SearchFilters } from '@/hooks/usePropertySearch';
 
 const FindRoom = () => {
+  const [searchParams] = useSearchParams();
+  const { properties, isLoading, error, executeSearch } = usePropertySearch();
+  
   const [authModal, setAuthModal] = useState<{
     isOpen: boolean;
     type: 'login' | 'signup';
@@ -19,12 +23,15 @@ const FindRoom = () => {
     type: 'login'
   });
 
-  const [filters, setFilters] = useState({
-    location: '',
-    propertyType: '',
-    maxRent: '',
-    amenities: [] as string[]
+  const [filters, setFilters] = useState<SearchFilters>({
+    location: searchParams.get('location') || '',
+    propertyType: searchParams.get('propertyType') || '',
+    budget: searchParams.get('budget') || '',
+    maxRent: undefined,
+    amenities: []
   });
+
+  const [hasSearched, setHasSearched] = useState(false);
 
   const handleAuthClick = (type: 'login' | 'signup') => {
     setAuthModal({ isOpen: true, type });
@@ -34,45 +41,19 @@ const FindRoom = () => {
     setAuthModal({ ...authModal, isOpen: false });
   };
 
-  // Mock property data
-  const properties = [
-    {
-      id: 1,
-      title: '2BHK Furnished Apartment',
-      location: 'Koramangala, Bangalore',
-      rent: 25000,
-      deposit: 50000,
-      type: 'full_flat_2bhk',
-      rating: 4.5,
-      reviews: 12,
-      amenities: ['Wifi', 'Parking', 'AC'],
-      image: '/placeholder.svg'
-    },
-    {
-      id: 2,
-      title: 'Single Room Near IT Park',
-      location: 'Electronic City, Bangalore',
-      rent: 12000,
-      deposit: 24000,
-      type: 'single_room',
-      rating: 4.2,
-      reviews: 8,
-      amenities: ['Wifi', 'Food'],
-      image: '/placeholder.svg'
-    },
-    {
-      id: 3,
-      title: 'PG for Working Professionals',
-      location: 'Whitefield, Bangalore',
-      rent: 8000,
-      deposit: 16000,
-      type: 'pg_hostel_room',
-      rating: 4.0,
-      reviews: 15,
-      amenities: ['Wifi', 'Food', 'Laundry'],
-      image: '/placeholder.svg'
+  const handleSearch = () => {
+    console.log('Executing search with filters:', filters);
+    executeSearch(filters);
+    setHasSearched(true);
+  };
+
+  // Auto-search if URL parameters are present
+  useEffect(() => {
+    const hasUrlParams = searchParams.get('location') || searchParams.get('propertyType') || searchParams.get('budget');
+    if (hasUrlParams && !hasSearched) {
+      handleSearch();
     }
-  ];
+  }, [searchParams, hasSearched]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -112,81 +93,45 @@ const FindRoom = () => {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="maxRent">Max Rent (₹)</Label>
-                <Input
-                  id="maxRent"
-                  type="number"
-                  placeholder="Enter max rent"
-                  value={filters.maxRent}
-                  onChange={(e) => setFilters({ ...filters, maxRent: e.target.value })}
-                />
+                <Label htmlFor="budget">Budget</Label>
+                <Select value={filters.budget} onValueChange={(value) => setFilters({ ...filters, budget: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select budget" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0-5000">Under ₹5,000</SelectItem>
+                    <SelectItem value="5000-10000">₹5,000 - ₹10,000</SelectItem>
+                    <SelectItem value="10000-15000">₹10,000 - ₹15,000</SelectItem>
+                    <SelectItem value="15000-25000">₹15,000 - ₹25,000</SelectItem>
+                    <SelectItem value="25000+">₹25,000+</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="flex items-end">
-                <Button className="w-full">Search Properties</Button>
+                <Button onClick={handleSearch} className="w-full" disabled={isLoading}>
+                  {isLoading ? 'Searching...' : 'Search Properties'}
+                </Button>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Results */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {properties.map((property) => (
-            <Card key={property.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-              <div className="aspect-video bg-gray-200 relative">
-                <img 
-                  src={property.image} 
-                  alt={property.title}
-                  className="w-full h-full object-cover"
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="absolute top-2 right-2 bg-white/80 hover:bg-white"
-                >
-                  <Heart className="w-4 h-4" />
-                </Button>
-              </div>
-              
-              <CardContent className="p-4">
-                <div className="space-y-3">
-                  <div>
-                    <h3 className="font-semibold text-lg">{property.title}</h3>
-                    <div className="flex items-center text-gray-600 text-sm">
-                      <MapPin className="w-4 h-4 mr-1" />
-                      {property.location}
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-2xl font-bold text-primary">₹{property.rent.toLocaleString()}</span>
-                      <span className="text-gray-600 text-sm">/month</span>
-                    </div>
-                    <div className="flex items-center">
-                      <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                      <span className="text-sm ml-1">{property.rating} ({property.reviews})</span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex flex-wrap gap-2">
-                    {property.amenities.map((amenity) => (
-                      <Badge key={amenity} variant="secondary" className="text-xs">
-                        {amenity}
-                      </Badge>
-                    ))}
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Button className="w-full">View Details</Button>
-                    <div className="text-xs text-gray-500 text-center">
-                      Security Deposit: ₹{property.deposit.toLocaleString()}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        {/* Search Results */}
+        {(hasSearched || isLoading) && (
+          <SearchResults 
+            properties={properties} 
+            isLoading={isLoading} 
+            error={error} 
+          />
+        )}
+
+        {/* Default message when no search has been performed */}
+        {!hasSearched && !isLoading && (
+          <div className="text-center py-12">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Ready to Find Your Perfect Room?</h2>
+            <p className="text-gray-600 mb-6">Use the search filters above to discover properties that match your needs.</p>
+          </div>
+        )}
       </div>
 
       <AuthModal

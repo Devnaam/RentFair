@@ -1,18 +1,27 @@
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, MapPin, Shield, Star, TrendingUp } from 'lucide-react';
 
 const HeroSection: React.FC = () => {
+  const navigate = useNavigate();
   const [searchLocation, setSearchLocation] = useState('');
   const [propertyType, setPropertyType] = useState('');
   const [budget, setBudget] = useState('');
 
   const handleSearch = () => {
     console.log('Search initiated:', { searchLocation, propertyType, budget });
-    // TODO: Implement search functionality
+    
+    // Navigate to FindRoom page with search parameters
+    const searchParams = new URLSearchParams();
+    if (searchLocation) searchParams.set('location', searchLocation);
+    if (propertyType) searchParams.set('propertyType', propertyType);
+    if (budget) searchParams.set('budget', budget);
+    
+    navigate(`/find-room?${searchParams.toString()}`);
   };
 
   return (
@@ -48,11 +57,11 @@ const HeroSection: React.FC = () => {
                   <SelectValue placeholder="Property Type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="single-room">Single Room</SelectItem>
-                  <SelectItem value="shared-room">Shared Room</SelectItem>
-                  <SelectItem value="1bhk">1 BHK</SelectItem>
-                  <SelectItem value="2bhk">2 BHK</SelectItem>
-                  <SelectItem value="pg">PG/Hostel</SelectItem>
+                  <SelectItem value="single_room">Single Room</SelectItem>
+                  <SelectItem value="shared_room">Shared Room</SelectItem>
+                  <SelectItem value="full_flat_1bhk">1 BHK</SelectItem>
+                  <SelectItem value="full_flat_2bhk">2 BHK</SelectItem>
+                  <SelectItem value="pg_hostel_room">PG/Hostel</SelectItem>
                 </SelectContent>
               </Select>
 

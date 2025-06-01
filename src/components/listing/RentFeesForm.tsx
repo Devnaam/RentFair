@@ -148,7 +148,7 @@ const RentFeesForm: React.FC<RentFeesFormProps> = ({ formData, updateFormData })
                 <Label className="text-xs">Amount (₹)</Label>
                 <Input
                   type="number"
-                  value={fee.amount.toString()}
+                  value={fee.amount?.toString() || '0'}
                   onChange={(e) => updateAdditionalFee(index, 'amount', e.target.value)}
                   placeholder="Amount"
                   size="sm"
