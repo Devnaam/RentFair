@@ -36,9 +36,15 @@ const RentFeesForm: React.FC<RentFeesFormProps> = ({ formData, updateFormData })
   };
 
   const updateAdditionalFee = (index: number, field: string, value: string | number) => {
-    const updatedFees = formData.additional_fees.map((fee, i) =>
-      i === index ? { ...fee, [field]: value } : fee
-    );
+    const updatedFees = formData.additional_fees.map((fee, i) => {
+      if (i === index) {
+        if (field === 'amount') {
+          return { ...fee, [field]: typeof value === 'string' ? Number(value) || 0 : value };
+        }
+        return { ...fee, [field]: value };
+      }
+      return fee;
+    });
     updateFormData({ additional_fees: updatedFees });
   };
 
@@ -141,10 +147,7 @@ const RentFeesForm: React.FC<RentFeesFormProps> = ({ formData, updateFormData })
                 <Input
                   type="number"
                   value={fee.amount || ''}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    updateAdditionalFee(index, 'amount', value ? Number(value) : 0);
-                  }}
+                  onChange={(e) => updateAdditionalFee(index, 'amount', e.target.value)}
                   placeholder="Amount"
                   size="sm"
                 />
