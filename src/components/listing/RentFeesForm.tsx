@@ -143,8 +143,7 @@ const RentFeesForm: React.FC<RentFeesFormProps> = ({ formData, updateFormData })
                   value={fee.amount || ''}
                   onChange={(e) => {
                     const value = e.target.value;
-                    const numericValue = value ? Number(value) : 0;
-                    updateAdditionalFee(index, 'amount', numericValue);
+                    updateAdditionalFee(index, 'amount', value ? Number(value) : 0);
                   }}
                   placeholder="Amount"
                   size="sm"
