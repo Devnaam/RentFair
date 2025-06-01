@@ -92,7 +92,7 @@ const RentFeesForm: React.FC<RentFeesFormProps> = ({ formData, updateFormData })
             value={formData.monthly_rent?.toString() || ''}
             onChange={(e) => {
               const value = e.target.value;
-              updateFormData({ monthly_rent: value ? Number(value) : null });
+              updateFormData({ monthly_rent: value ? parseInt(value, 10) : null });
             }}
             placeholder="Enter monthly rent"
           />
@@ -112,7 +112,7 @@ const RentFeesForm: React.FC<RentFeesFormProps> = ({ formData, updateFormData })
             value={formData.security_deposit?.toString() || ''}
             onChange={(e) => {
               const value = e.target.value;
-              updateFormData({ security_deposit: value ? Number(value) : null });
+              updateFormData({ security_deposit: value ? parseInt(value, 10) : null });
             }}
             placeholder="Enter security deposit"
           />

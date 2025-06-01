@@ -51,9 +51,16 @@ const usePropertySearch = () => {
       query = query.or(`city.ilike.%${searchFilters.location}%,state.ilike.%${searchFilters.location}%`);
     }
 
-    // Filter by property type
+    // Filter by property type - only apply if it's a valid property type
     if (searchFilters.propertyType) {
-      query = query.eq('property_type', searchFilters.propertyType);
+      const validPropertyTypes = [
+        'single_room', 'shared_room', 'full_flat_1bhk', 
+        'full_flat_2bhk', 'pg_hostel_room', 'full_flat_3bhk_plus'
+      ];
+      
+      if (validPropertyTypes.includes(searchFilters.propertyType)) {
+        query = query.eq('property_type', searchFilters.propertyType);
+      }
     }
 
     // Filter by budget
