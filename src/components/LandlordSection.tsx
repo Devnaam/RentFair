@@ -2,8 +2,11 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus, TrendingUp, Shield, MessageSquare, Star, Eye } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const LandlordSection: React.FC = () => {
+  const navigate = useNavigate();
+
   const benefits = [
     {
       icon: TrendingUp,
@@ -70,7 +73,10 @@ const LandlordSection: React.FC = () => {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button className="bg-primary hover:bg-primary-dark text-white px-8 py-3">
+              <Button 
+                className="bg-primary hover:bg-primary-dark text-white px-8 py-3"
+                onClick={() => navigate('/list-property')}
+              >
                 <Plus className="w-5 h-5 mr-2" />
                 List Your Property
               </Button>
@@ -120,7 +126,10 @@ const LandlordSection: React.FC = () => {
                   </div>
                 </div>
                 
-                <Button className="w-full bg-primary hover:bg-primary-dark text-white">
+                <Button 
+                  className="w-full bg-primary hover:bg-primary-dark text-white"
+                  onClick={() => navigate('/dashboard')}
+                >
                   View Full Dashboard
                 </Button>
               </div>

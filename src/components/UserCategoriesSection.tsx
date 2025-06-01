@@ -2,8 +2,11 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Users, Briefcase, User, Home, Clock, Shield } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const UserCategoriesSection: React.FC = () => {
+  const navigate = useNavigate();
+
   const categories = [
     {
       id: 'students',
@@ -110,6 +113,7 @@ const UserCategoriesSection: React.FC = () => {
               <Button
                 variant="outline"
                 className={`w-full ${category.iconColor} border-current hover:bg-white/50`}
+                onClick={() => navigate('/find-room')}
               >
                 Find My Room
               </Button>
