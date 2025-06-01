@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
@@ -143,11 +142,10 @@ const ListProperty = () => {
     setIsSubmitting(true);
     
     try {
-      // Insert main listing
+      // Insert main listing - removing landlord_id as it will be set by RLS policy
       const { data: listing, error: listingError } = await supabase
         .from('property_listings')
         .insert({
-          landlord_id: user.id,
           property_type: formData.property_type,
           street_address: formData.street_address,
           city: formData.city,
