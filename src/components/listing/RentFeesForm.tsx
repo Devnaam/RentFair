@@ -82,7 +82,10 @@ const RentFeesForm: React.FC<RentFeesFormProps> = ({ formData, updateFormData })
             id="monthly_rent"
             type="number"
             value={formData.monthly_rent || ''}
-            onChange={(e) => updateFormData({ monthly_rent: e.target.value ? Number(e.target.value) : null })}
+            onChange={(e) => {
+              const value = e.target.value;
+              updateFormData({ monthly_rent: value ? Number(value) : null });
+            }}
             placeholder="Enter monthly rent"
           />
           {estimatedRent && (
@@ -99,7 +102,10 @@ const RentFeesForm: React.FC<RentFeesFormProps> = ({ formData, updateFormData })
             id="security_deposit"
             type="number"
             value={formData.security_deposit || ''}
-            onChange={(e) => updateFormData({ security_deposit: e.target.value ? Number(e.target.value) : null })}
+            onChange={(e) => {
+              const value = e.target.value;
+              updateFormData({ security_deposit: value ? Number(value) : null });
+            }}
             placeholder="Enter security deposit"
           />
         </div>
