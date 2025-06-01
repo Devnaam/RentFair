@@ -39,7 +39,9 @@ const RentFeesForm: React.FC<RentFeesFormProps> = ({ formData, updateFormData })
     const updatedFees = formData.additional_fees.map((fee, i) => {
       if (i === index) {
         if (field === 'amount') {
-          return { ...fee, [field]: typeof value === 'string' ? Number(value) || 0 : value };
+          // Convert string to number for amount field
+          const numValue = typeof value === 'string' ? parseFloat(value) || 0 : value;
+          return { ...fee, [field]: numValue };
         }
         return { ...fee, [field]: value };
       }
@@ -146,7 +148,7 @@ const RentFeesForm: React.FC<RentFeesFormProps> = ({ formData, updateFormData })
                 <Label className="text-xs">Amount (₹)</Label>
                 <Input
                   type="number"
-                  value={fee.amount?.toString() || ''}
+                  value={fee.amount.toString()}
                   onChange={(e) => updateAdditionalFee(index, 'amount', e.target.value)}
                   placeholder="Amount"
                   size="sm"
