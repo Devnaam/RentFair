@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Upload, X, Image } from 'lucide-react';
-import { ListingFormData } from '@/pages/ListProperty';
+import { ListingFormData } from '@/types/listing';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 

@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ListingFormData } from '@/pages/ListProperty';
+import { ListingFormData } from '@/types/listing';
 
 interface AmenitiesFormProps {
   formData: ListingFormData;
