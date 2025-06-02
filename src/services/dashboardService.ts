@@ -97,7 +97,7 @@ export const fetchLandlordProperties = async (landlordId: string): Promise<Prope
           title: property.title || 'Untitled Property',
           location: `${property.street_address}, ${property.city}, ${property.state}`,
           rent: property.monthly_rent || 0,
-          status: property.status || 'draft',
+          status: (property.status as string) || 'draft',
           views: property.views_count || 0,
           inquiries: inquiriesCount || 0,
           rating: 4.5, // Mock rating
