@@ -10,9 +10,15 @@ interface SearchResultsProps {
   properties: Property[];
   isLoading: boolean;
   error: any;
+  title?: string;
 }
 
-const SearchResults: React.FC<SearchResultsProps> = ({ properties, isLoading, error }) => {
+const SearchResults: React.FC<SearchResultsProps> = ({ 
+  properties, 
+  isLoading, 
+  error, 
+  title = "Search Results" 
+}) => {
   const getAmenityIcon = (amenity: string) => {
     switch (amenity.toLowerCase()) {
       case 'wifi':
@@ -41,7 +47,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ properties, isLoading, er
     return (
       <div className="text-center py-8">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-        <p className="mt-4 text-gray-600">Searching properties...</p>
+        <p className="mt-4 text-gray-600">Loading properties...</p>
       </div>
     );
   }
@@ -49,7 +55,8 @@ const SearchResults: React.FC<SearchResultsProps> = ({ properties, isLoading, er
   if (error) {
     return (
       <div className="text-center py-8">
-        <p className="text-red-600">Error loading properties. Please try again.</p>
+        <p className="text-red-600 mb-4">Error loading properties: {error.message}</p>
+        <p className="text-gray-600">Please try adjusting your search filters or try again later.</p>
       </div>
     );
   }
@@ -58,7 +65,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ properties, isLoading, er
     return (
       <div className="text-center py-8">
         <p className="text-gray-600">No properties found matching your criteria.</p>
-        <p className="text-sm text-gray-500 mt-2">Try adjusting your search filters.</p>
+        <p className="text-sm text-gray-500 mt-2">Try adjusting your search filters or search in a different area.</p>
       </div>
     );
   }
@@ -66,7 +73,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ properties, isLoading, er
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Search Results</h2>
+        <h2 className="text-2xl font-bold">{title}</h2>
         <p className="text-gray-600">{properties.length} properties found</p>
       </div>
       

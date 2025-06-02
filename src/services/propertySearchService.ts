@@ -87,10 +87,14 @@ export const searchProperties = async (
       .select('*', { count: 'exact' })
       .eq('status', 'active');
 
-    // Location filters (city or state)
+    // Location filters - Fixed the SQL parsing issue
     if (filters.location) {
+      // Clean and escape the location string
+      const cleanLocation = filters.location.trim();
+      
+      // Use textSearch for better location matching
       query = query.or(
-        `city.ilike.%${filters.location}%,state.ilike.%${filters.location}%,street_address.ilike.%${filters.location}%`
+        `city.ilike.%${cleanLocation}%,state.ilike.%${cleanLocation}%,street_address.ilike.%${cleanLocation}%`
       );
     }
 

@@ -10,10 +10,12 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AuthModal from '@/components/AuthModal';
 import usePropertySearch, { SearchFilters } from '@/hooks/usePropertySearch';
+import { getFeaturedProperties } from '@/services/propertySearchService';
+import { useQuery } from '@tanstack/react-query';
 
 const FindRoom = () => {
   const [searchParams] = useSearchParams();
-  const { properties, isLoading, error, executeSearch } = usePropertySearch();
+  const { properties, isLoading, error, executeSearch, loadPropertiesForLocation } = usePropertySearch();
   
   const [authModal, setAuthModal] = useState<{
     isOpen: boolean;
@@ -27,11 +29,18 @@ const FindRoom = () => {
     location: searchParams.get('location') || '',
     propertyType: searchParams.get('propertyType') || '',
     budget: searchParams.get('budget') || '',
-    maxRent: undefined,
     amenities: []
   });
 
   const [hasSearched, setHasSearched] = useState(false);
+  const [userLocation, setUserLocation] = useState<string>('');
+
+  // Load featured properties when no search has been performed
+  const { data: featuredProperties, isLoading: loadingFeatured } = useQuery({
+    queryKey: ['featuredProperties'],
+    queryFn: () => getFeaturedProperties(12),
+    enabled: !hasSearched && !isLoading
+  });
 
   const handleAuthClick = (type: 'login' | 'signup') => {
     setAuthModal({ isOpen: true, type });
@@ -47,6 +56,35 @@ const FindRoom = () => {
     setHasSearched(true);
   };
 
+  // Get user's location
+  const getUserLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          try {
+            // Use reverse geocoding to get city name
+            const response = await fetch(
+              `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${position.coords.latitude}&longitude=${position.coords.longitude}&localityLanguage=en`
+            );
+            const data = await response.json();
+            const city = data.city || data.locality || 'Unknown';
+            setUserLocation(city);
+            
+            // Auto-load properties for user's location
+            if (city !== 'Unknown') {
+              setFilters(prev => ({ ...prev, location: city }));
+            }
+          } catch (error) {
+            console.error('Error getting location name:', error);
+          }
+        },
+        (error) => {
+          console.error('Error getting location:', error);
+        }
+      );
+    }
+  };
+
   // Auto-search if URL parameters are present
   useEffect(() => {
     const hasUrlParams = searchParams.get('location') || searchParams.get('propertyType') || searchParams.get('budget');
@@ -54,6 +92,25 @@ const FindRoom = () => {
       handleSearch();
     }
   }, [searchParams, hasSearched]);
+
+  // Get user location on component mount
+  useEffect(() => {
+    getUserLocation();
+  }, []);
+
+  // Auto-search when user location is detected
+  useEffect(() => {
+    if (userLocation && !hasSearched && !searchParams.get('location')) {
+      setFilters(prev => ({ ...prev, location: userLocation }));
+      setTimeout(() => {
+        executeSearch({ ...filters, location: userLocation });
+        setHasSearched(true);
+      }, 1000);
+    }
+  }, [userLocation]);
+
+  const displayProperties = hasSearched ? properties : (featuredProperties || []);
+  const displayLoading = hasSearched ? isLoading : loadingFeatured;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -63,7 +120,14 @@ const FindRoom = () => {
         {/* Search Filters */}
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle>Find Your Perfect Room</CardTitle>
+            <CardTitle>
+              Find Your Perfect Room
+              {userLocation && (
+                <span className="text-sm font-normal text-gray-600 block mt-1">
+                  Showing properties near {userLocation}
+                </span>
+              )}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -108,8 +172,8 @@ const FindRoom = () => {
                 </Select>
               </div>
               <div className="flex items-end">
-                <Button onClick={handleSearch} className="w-full" disabled={isLoading}>
-                  {isLoading ? 'Searching...' : 'Search Properties'}
+                <Button onClick={handleSearch} className="w-full" disabled={displayLoading}>
+                  {displayLoading ? 'Searching...' : 'Search Properties'}
                 </Button>
               </div>
             </div>
@@ -117,16 +181,15 @@ const FindRoom = () => {
         </Card>
 
         {/* Search Results */}
-        {(hasSearched || isLoading) && (
-          <SearchResults 
-            properties={properties} 
-            isLoading={isLoading} 
-            error={error} 
-          />
-        )}
+        <SearchResults 
+          properties={displayProperties} 
+          isLoading={displayLoading} 
+          error={error}
+          title={hasSearched ? 'Search Results' : 'Featured Properties'}
+        />
 
-        {/* Default message when no search has been performed */}
-        {!hasSearched && !isLoading && (
+        {/* Default message when no search has been performed and no featured properties */}
+        {!hasSearched && !loadingFeatured && (!featuredProperties || featuredProperties.length === 0) && (
           <div className="text-center py-12">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Ready to Find Your Perfect Room?</h2>
             <p className="text-gray-600 mb-6">Use the search filters above to discover properties that match your needs.</p>
