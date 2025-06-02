@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -91,7 +92,8 @@ const RentFeesForm: React.FC<RentFeesFormProps> = ({ formData, updateFormData })
             value={formData.monthly_rent?.toString() || ''}
             onChange={(e) => {
               const value = e.target.value;
-              updateFormData({ monthly_rent: value ? parseFloat(value) : null });
+              const numValue = value ? parseFloat(value) : null;
+              updateFormData({ monthly_rent: numValue });
             }}
             placeholder="Enter monthly rent"
           />
@@ -111,7 +113,8 @@ const RentFeesForm: React.FC<RentFeesFormProps> = ({ formData, updateFormData })
             value={formData.security_deposit?.toString() || ''}
             onChange={(e) => {
               const value = e.target.value;
-              updateFormData({ security_deposit: value ? parseFloat(value) : null });
+              const numValue = value ? parseFloat(value) : null;
+              updateFormData({ security_deposit: numValue });
             }}
             placeholder="Enter security deposit"
           />

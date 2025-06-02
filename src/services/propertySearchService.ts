@@ -50,6 +50,26 @@ export interface PropertySearchResponse {
   hasMore: boolean;
 }
 
+// Valid property types based on database schema
+type ValidPropertyType = 'single_room' | 'shared_room' | 'full_flat_1bhk' | 'full_flat_2bhk' | 'pg_hostel_room' | 'full_flat_3bhk_plus';
+
+// Valid furnishing status based on database schema
+type ValidFurnishingStatus = 'unfurnished' | 'semi_furnished' | 'fully_furnished';
+
+// Type guard functions
+const isValidPropertyType = (type: string): type is ValidPropertyType => {
+  const validTypes: ValidPropertyType[] = [
+    'single_room', 'shared_room', 'full_flat_1bhk', 
+    'full_flat_2bhk', 'pg_hostel_room', 'full_flat_3bhk_plus'
+  ];
+  return validTypes.includes(type as ValidPropertyType);
+};
+
+const isValidFurnishingStatus = (status: string): status is ValidFurnishingStatus => {
+  const validStatuses: ValidFurnishingStatus[] = ['unfurnished', 'semi_furnished', 'fully_furnished'];
+  return validStatuses.includes(status as ValidFurnishingStatus);
+};
+
 /**
  * Search properties in Supabase based on various filters
  * @param filters - The search criteria
@@ -84,16 +104,9 @@ export const searchProperties = async (
       query = query.ilike('state', `%${filters.state}%`);
     }
 
-    // Property type filter
-    if (filters.propertyType) {
-      const validPropertyTypes = [
-        'single_room', 'shared_room', 'full_flat_1bhk', 
-        'full_flat_2bhk', 'pg_hostel_room', 'full_flat_3bhk_plus'
-      ];
-      
-      if (validPropertyTypes.includes(filters.propertyType)) {
-        query = query.eq('property_type', filters.propertyType);
-      }
+    // Property type filter with type validation
+    if (filters.propertyType && isValidPropertyType(filters.propertyType)) {
+      query = query.eq('property_type', filters.propertyType);
     }
 
     // Rent range filters
@@ -115,12 +128,9 @@ export const searchProperties = async (
       query = query.eq('bathrooms', filters.bathrooms);
     }
 
-    // Furnishing status filter
-    if (filters.furnishingStatus) {
-      const validFurnishingStatus = ['unfurnished', 'semi_furnished', 'fully_furnished'];
-      if (validFurnishingStatus.includes(filters.furnishingStatus)) {
-        query = query.eq('furnishing_status', filters.furnishingStatus);
-      }
+    // Furnishing status filter with type validation
+    if (filters.furnishingStatus && isValidFurnishingStatus(filters.furnishingStatus)) {
+      query = query.eq('furnishing_status', filters.furnishingStatus);
     }
 
     // Amenities filter (contains any of the specified amenities)
