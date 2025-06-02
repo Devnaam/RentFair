@@ -38,11 +38,6 @@ const RentFeesForm: React.FC<RentFeesFormProps> = ({ formData, updateFormData })
   const updateAdditionalFee = (index: number, field: string, value: string | number) => {
     const updatedFees = formData.additional_fees.map((fee, i) => {
       if (i === index) {
-        if (field === 'amount') {
-          // Convert string to number for amount field
-          const numValue = typeof value === 'string' ? parseFloat(value) || 0 : value;
-          return { ...fee, [field]: numValue };
-        }
         return { ...fee, [field]: value };
       }
       return fee;

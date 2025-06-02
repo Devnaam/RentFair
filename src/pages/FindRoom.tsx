@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AuthModal from '@/components/AuthModal';
 import usePropertySearch, { SearchFilters } from '@/hooks/usePropertySearch';
-import { getFeaturedProperties } from '@/services/propertySearchService';
+import { getFeaturedProperties, getAllActiveProperties } from '@/services/propertySearchService';
 import { useQuery } from '@tanstack/react-query';
 
 const FindRoom = () => {
@@ -35,10 +35,10 @@ const FindRoom = () => {
   const [hasSearched, setHasSearched] = useState(false);
   const [userLocation, setUserLocation] = useState<string>('');
 
-  // Load featured properties when no search has been performed
-  const { data: featuredProperties, isLoading: loadingFeatured } = useQuery({
-    queryKey: ['featuredProperties'],
-    queryFn: () => getFeaturedProperties(12),
+  // Load all active properties when no search has been performed
+  const { data: allProperties, isLoading: loadingAll } = useQuery({
+    queryKey: ['allActiveProperties'],
+    queryFn: () => getAllActiveProperties(20),
     enabled: !hasSearched && !isLoading
   });
 
@@ -69,9 +69,10 @@ const FindRoom = () => {
             const data = await response.json();
             const city = data.city || data.locality || 'Unknown';
             setUserLocation(city);
+            console.log('User location detected:', city);
             
-            // Auto-load properties for user's location
-            if (city !== 'Unknown') {
+            // Auto-set location filter if no location is already set
+            if (!filters.location && city !== 'Unknown') {
               setFilters(prev => ({ ...prev, location: city }));
             }
           } catch (error) {
@@ -89,6 +90,7 @@ const FindRoom = () => {
   useEffect(() => {
     const hasUrlParams = searchParams.get('location') || searchParams.get('propertyType') || searchParams.get('budget');
     if (hasUrlParams && !hasSearched) {
+      console.log('Auto-searching with URL params');
       handleSearch();
     }
   }, [searchParams, hasSearched]);
@@ -98,10 +100,10 @@ const FindRoom = () => {
     getUserLocation();
   }, []);
 
-  // Auto-search when user location is detected
+  // Auto-search when user location is detected and no search has been performed
   useEffect(() => {
-    if (userLocation && !hasSearched && !searchParams.get('location')) {
-      setFilters(prev => ({ ...prev, location: userLocation }));
+    if (userLocation && !hasSearched && !searchParams.get('location') && userLocation !== 'Unknown') {
+      console.log('Auto-searching with user location:', userLocation);
       setTimeout(() => {
         executeSearch({ ...filters, location: userLocation });
         setHasSearched(true);
@@ -109,8 +111,10 @@ const FindRoom = () => {
     }
   }, [userLocation]);
 
-  const displayProperties = hasSearched ? properties : (featuredProperties || []);
-  const displayLoading = hasSearched ? isLoading : loadingFeatured;
+  const displayProperties = hasSearched ? properties : (allProperties || []);
+  const displayLoading = hasSearched ? isLoading : loadingAll;
+
+  const hasFiltersApplied = filters.location || filters.propertyType || filters.budget;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -122,9 +126,9 @@ const FindRoom = () => {
           <CardHeader>
             <CardTitle>
               Find Your Perfect Room
-              {userLocation && (
+              {userLocation && userLocation !== 'Unknown' && (
                 <span className="text-sm font-normal text-gray-600 block mt-1">
-                  Showing properties near {userLocation}
+                  {hasSearched ? `Search results ${filters.location ? `for ${filters.location}` : ''}` : `Showing properties near ${userLocation}`}
                 </span>
               )}
             </CardTitle>
@@ -177,6 +181,21 @@ const FindRoom = () => {
                 </Button>
               </div>
             </div>
+            
+            {hasFiltersApplied && (
+              <div className="mt-4">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    setFilters({ location: '', propertyType: '', budget: '', amenities: [] });
+                    setHasSearched(false);
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -185,14 +204,32 @@ const FindRoom = () => {
           properties={displayProperties} 
           isLoading={displayLoading} 
           error={error}
-          title={hasSearched ? 'Search Results' : 'Featured Properties'}
+          title={hasSearched ? 'Search Results' : (userLocation && userLocation !== 'Unknown' ? `Properties near ${userLocation}` : 'Available Properties')}
         />
 
-        {/* Default message when no search has been performed and no featured properties */}
-        {!hasSearched && !loadingFeatured && (!featuredProperties || featuredProperties.length === 0) && (
+        {/* Message when no properties are found */}
+        {!displayLoading && displayProperties.length === 0 && !error && (
           <div className="text-center py-12">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Ready to Find Your Perfect Room?</h2>
-            <p className="text-gray-600 mb-6">Use the search filters above to discover properties that match your needs.</p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              {hasSearched ? 'No properties found' : 'No properties available'}
+            </h2>
+            <p className="text-gray-600 mb-6">
+              {hasSearched 
+                ? 'Try adjusting your search filters or search in a different area.' 
+                : 'Check back later for new listings.'
+              }
+            </p>
+            {hasSearched && (
+              <Button 
+                onClick={() => {
+                  setFilters({ location: '', propertyType: '', budget: '', amenities: [] });
+                  setHasSearched(false);
+                }}
+                variant="outline"
+              >
+                View All Properties
+              </Button>
+            )}
           </div>
         )}
       </div>

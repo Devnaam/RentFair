@@ -87,15 +87,13 @@ export const searchProperties = async (
       .select('*', { count: 'exact' })
       .eq('status', 'active');
 
-    // Location filters - Fixed the SQL parsing issue
+    // Location filters - Use separate conditions to avoid SQL parsing issues
     if (filters.location) {
-      // Clean and escape the location string
       const cleanLocation = filters.location.trim();
+      console.log('Searching for location:', cleanLocation);
       
-      // Use textSearch for better location matching
-      query = query.or(
-        `city.ilike.%${cleanLocation}%,state.ilike.%${cleanLocation}%,street_address.ilike.%${cleanLocation}%`
-      );
+      // Use multiple separate ilike conditions instead of or() to avoid parsing issues
+      query = query.or(`city.ilike.*${cleanLocation}*,state.ilike.*${cleanLocation}*,street_address.ilike.*${cleanLocation}*`);
     }
 
     // Specific city filter
@@ -168,6 +166,7 @@ export const searchProperties = async (
       throw new Error(`Failed to search properties: ${error.message}`);
     }
 
+    console.log('Search results:', data);
     const total = count || 0;
     const hasMore = offset + limit < total;
 
@@ -179,6 +178,37 @@ export const searchProperties = async (
 
   } catch (error) {
     console.error('Property search service error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get all active properties (for when no filters are applied)
+ * @param limit - Number of results to return
+ * @returns Promise with all active properties
+ */
+export const getAllActiveProperties = async (
+  limit: number = 20
+): Promise<PropertySearchResult[]> => {
+  try {
+    console.log('Fetching all active properties');
+    
+    const { data, error } = await supabase
+      .from('property_listings')
+      .select('*')
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('Error fetching all properties:', error);
+      throw new Error(`Failed to fetch properties: ${error.message}`);
+    }
+
+    console.log('All active properties:', data);
+    return data || [];
+  } catch (error) {
+    console.error('Get all properties error:', error);
     throw error;
   }
 };
@@ -222,11 +252,13 @@ export const getPropertiesByLocation = async (
   limit: number = 10
 ): Promise<PropertySearchResult[]> => {
   try {
+    console.log('Fetching properties by location:', location);
+    
     const { data, error } = await supabase
       .from('property_listings')
       .select('*')
       .eq('status', 'active')
-      .or(`city.ilike.%${location}%,state.ilike.%${location}%`)
+      .or(`city.ilike.*${location}*,state.ilike.*${location}*`)
       .order('views_count', { ascending: false })
       .limit(limit);
 
@@ -235,6 +267,7 @@ export const getPropertiesByLocation = async (
       throw new Error(`Failed to fetch properties: ${error.message}`);
     }
 
+    console.log('Properties by location:', data);
     return data || [];
   } catch (error) {
     console.error('Get properties by location error:', error);
@@ -251,6 +284,8 @@ export const getFeaturedProperties = async (
   limit: number = 6
 ): Promise<PropertySearchResult[]> => {
   try {
+    console.log('Fetching featured properties');
+    
     const { data, error } = await supabase
       .from('property_listings')
       .select('*')
@@ -263,6 +298,7 @@ export const getFeaturedProperties = async (
       throw new Error(`Failed to fetch featured properties: ${error.message}`);
     }
 
+    console.log('Featured properties:', data);
     return data || [];
   } catch (error) {
     console.error('Get featured properties error:', error);

@@ -6,7 +6,8 @@ import {
   PropertySearchFilters, 
   PropertySearchResult,
   PropertySearchResponse,
-  getPropertiesByLocation
+  getPropertiesByLocation,
+  getAllActiveProperties
 } from '@/services/propertySearchService';
 
 export interface SearchFilters {
@@ -78,9 +79,21 @@ const usePropertySearch = () => {
     refetch
   } = useQuery({
     queryKey: ['properties', filters],
-    queryFn: () => {
+    queryFn: async () => {
       const searchFilters = convertFiltersToSearchFilters(filters);
       console.log('Converting filters:', filters, 'to:', searchFilters);
+      
+      // If no filters are applied, get all active properties
+      if (!searchFilters.location && !searchFilters.propertyType && !searchFilters.minRent && !searchFilters.maxRent) {
+        console.log('No filters applied, fetching all active properties');
+        const properties = await getAllActiveProperties(20);
+        return {
+          data: properties,
+          total: properties.length,
+          hasMore: false
+        };
+      }
+      
       return searchProperties(searchFilters);
     },
     enabled: false // Only run when explicitly triggered
@@ -95,6 +108,7 @@ const usePropertySearch = () => {
   // Auto-load properties for a location
   const loadPropertiesForLocation = async (location: string) => {
     try {
+      console.log('Loading properties for location:', location);
       const properties = await getPropertiesByLocation(location, 20);
       return properties;
     } catch (error) {
