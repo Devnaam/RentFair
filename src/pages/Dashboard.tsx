@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Header from '@/components/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,10 +20,18 @@ import {
 import AuthModal from '@/components/AuthModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
+import { 
+  fetchDashboardStats, 
+  fetchLandlordProperties, 
+  deleteProperty 
+} from '@/services/dashboardService';
 
 const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   const [authModal, setAuthModal] = useState<{
     isOpen: boolean;
@@ -40,51 +49,53 @@ const Dashboard = () => {
     setAuthModal({ ...authModal, isOpen: false });
   };
 
-  // Mock data for properties
-  const properties = [
-    {
-      id: 1,
-      title: '2BHK Furnished Apartment',
-      location: 'Koramangala, Bangalore',
-      rent: 25000,
-      status: 'active',
-      views: 147,
-      inquiries: 8,
-      rating: 4.8,
-      reviews: 12
-    },
-    {
-      id: 2,
-      title: 'Single Room Near IT Park',
-      location: 'Electronic City, Bangalore',
-      rent: 12000,
-      status: 'rented',
-      views: 89,
-      inquiries: 3,
-      rating: 4.5,
-      reviews: 7
-    }
-  ];
+  // Fetch dashboard statistics
+  const { data: stats, isLoading: statsLoading } = useQuery({
+    queryKey: ['dashboard-stats', user?.id],
+    queryFn: () => fetchDashboardStats(user!.id),
+    enabled: !!user?.id
+  });
 
-  // Mock data for inquiries
-  const inquiries = [
-    {
-      id: 1,
-      tenant: 'John Doe',
-      property: '2BHK Furnished Apartment',
-      message: 'Hi, I am interested in viewing this property...',
-      date: '2 hours ago',
-      status: 'new'
+  // Fetch landlord properties
+  const { data: properties, isLoading: propertiesLoading } = useQuery({
+    queryKey: ['landlord-properties', user?.id],
+    queryFn: () => fetchLandlordProperties(user!.id),
+    enabled: !!user?.id
+  });
+
+  // Delete property mutation
+  const deletePropertyMutation = useMutation({
+    mutationFn: deleteProperty,
+    onSuccess: () => {
+      toast({
+        title: "Property deleted successfully",
+        description: "The property has been removed from your listings."
+      });
+      queryClient.invalidateQueries({ queryKey: ['landlord-properties'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
     },
-    {
-      id: 2,
-      tenant: 'Jane Smith',
-      property: 'Single Room Near IT Park',
-      message: 'Is the property still available?',
-      date: '1 day ago',
-      status: 'replied'
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Failed to delete property",
+        description: error.message
+      });
     }
-  ];
+  });
+
+  const handleDeleteProperty = (propertyId: string) => {
+    if (window.confirm('Are you sure you want to delete this property? This action cannot be undone.')) {
+      deletePropertyMutation.mutate(propertyId);
+    }
+  };
+
+  const handleViewProperty = (propertyId: string) => {
+    navigate(`/property/${propertyId}`);
+  };
+
+  const handleEditProperty = (propertyId: string) => {
+    navigate(`/property/${propertyId}`);
+  };
 
   if (!user) {
     return (
@@ -139,7 +150,9 @@ const Dashboard = () => {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Monthly Revenue</p>
-                  <p className="text-2xl font-bold">₹37,000</p>
+                  <p className="text-2xl font-bold">
+                    {statsLoading ? '...' : `₹${stats?.monthlyRevenue?.toLocaleString() || 0}`}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -153,7 +166,9 @@ const Dashboard = () => {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Total Views</p>
-                  <p className="text-2xl font-bold">236</p>
+                  <p className="text-2xl font-bold">
+                    {statsLoading ? '...' : stats?.totalViews || 0}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -167,7 +182,9 @@ const Dashboard = () => {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">New Inquiries</p>
-                  <p className="text-2xl font-bold">11</p>
+                  <p className="text-2xl font-bold">
+                    {statsLoading ? '...' : stats?.newInquiries || 0}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -181,7 +198,9 @@ const Dashboard = () => {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Active Properties</p>
-                  <p className="text-2xl font-bold">2</p>
+                  <p className="text-2xl font-bold">
+                    {statsLoading ? '...' : stats?.activeProperties || 0}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -192,98 +211,113 @@ const Dashboard = () => {
         <Tabs defaultValue="properties" className="space-y-6">
           <TabsList>
             <TabsTrigger value="properties">My Properties</TabsTrigger>
-            <TabsTrigger value="inquiries">Inquiries</TabsTrigger>
+            <TabsTrigger value="inquiries" onClick={() => navigate('/inquiries')}>Inquiries</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
           </TabsList>
 
           <TabsContent value="properties" className="space-y-6">
-            <div className="grid gap-6">
-              {properties.map((property) => (
-                <Card key={property.id}>
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start">
-                      <div className="space-y-4 flex-1">
-                        <div>
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-xl font-semibold">{property.title}</h3>
-                            <Badge variant={property.status === 'active' ? 'default' : 'secondary'}>
-                              {property.status === 'active' ? 'Active' : 'Rented'}
-                            </Badge>
+            {propertiesLoading ? (
+              <div className="space-y-4">
+                {[...Array(3)].map((_, i) => (
+                  <Card key={i}>
+                    <CardContent className="p-6">
+                      <div className="animate-pulse space-y-3">
+                        <div className="h-6 bg-gray-200 rounded w-1/3"></div>
+                        <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                        <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : properties && properties.length > 0 ? (
+              <div className="grid gap-6">
+                {properties.map((property) => (
+                  <Card key={property.id}>
+                    <CardContent className="p-6">
+                      <div className="flex justify-between items-start">
+                        <div className="space-y-4 flex-1">
+                          <div>
+                            <div className="flex items-center gap-3 mb-2">
+                              <h3 className="text-xl font-semibold">{property.title}</h3>
+                              <Badge variant={property.status === 'active' ? 'default' : 'secondary'}>
+                                {property.status === 'active' ? 'Active' : property.status}
+                              </Badge>
+                            </div>
+                            <p className="text-gray-600">{property.location}</p>
+                            <p className="text-2xl font-bold text-primary">₹{property.rent.toLocaleString()}/month</p>
                           </div>
-                          <p className="text-gray-600">{property.location}</p>
-                          <p className="text-2xl font-bold text-primary">₹{property.rent.toLocaleString()}/month</p>
+                          
+                          <div className="grid grid-cols-3 gap-6">
+                            <div className="flex items-center">
+                              <Eye className="w-5 h-5 text-blue-600 mr-2" />
+                              <div>
+                                <p className="font-semibold">{property.views}</p>
+                                <p className="text-sm text-gray-600">Views this week</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center">
+                              <MessageSquare className="w-5 h-5 text-green-600 mr-2" />
+                              <div>
+                                <p className="font-semibold">{property.inquiries}</p>
+                                <p className="text-sm text-gray-600">New inquiries</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center">
+                              <Star className="w-5 h-5 text-yellow-500 mr-2" />
+                              <div>
+                                <p className="font-semibold">{property.rating}</p>
+                                <p className="text-sm text-gray-600">({property.reviews} reviews)</p>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                         
-                        <div className="grid grid-cols-3 gap-6">
-                          <div className="flex items-center">
-                            <Eye className="w-5 h-5 text-blue-600 mr-2" />
-                            <div>
-                              <p className="font-semibold">{property.views}</p>
-                              <p className="text-sm text-gray-600">Views this week</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center">
-                            <MessageSquare className="w-5 h-5 text-green-600 mr-2" />
-                            <div>
-                              <p className="font-semibold">{property.inquiries}</p>
-                              <p className="text-sm text-gray-600">New inquiries</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center">
-                            <Star className="w-5 h-5 text-yellow-500 mr-2" />
-                            <div>
-                              <p className="font-semibold">{property.rating}</p>
-                              <p className="text-sm text-gray-600">({property.reviews} reviews)</p>
-                            </div>
-                          </div>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleEditProperty(property.id)}
+                          >
+                            <Edit className="w-4 h-4 mr-2" />
+                            Edit
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleViewProperty(property.id)}
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            View
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleDeleteProperty(property.id)}
+                            disabled={deletePropertyMutation.isPending}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                         </div>
                       </div>
-                      
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
-                          <Edit className="w-4 h-4 mr-2" />
-                          Edit
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <Eye className="w-4 h-4 mr-2" />
-                          View
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="inquiries" className="space-y-6">
-            <div className="space-y-4">
-              {inquiries.map((inquiry) => (
-                <Card key={inquiry.id}>
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start">
-                      <div className="space-y-2 flex-1">
-                        <div className="flex items-center gap-3">
-                          <h3 className="font-semibold">{inquiry.tenant}</h3>
-                          <Badge variant={inquiry.status === 'new' ? 'default' : 'secondary'}>
-                            {inquiry.status}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-gray-600">{inquiry.property}</p>
-                        <p className="text-gray-700">{inquiry.message}</p>
-                        <p className="text-xs text-gray-500">{inquiry.date}</p>
-                      </div>
-                      <Button variant="outline" size="sm">
-                        Reply
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <h3 className="text-lg font-semibold mb-2">No properties yet</h3>
+                  <p className="text-gray-600 mb-4">
+                    Start by adding your first property to the platform.
+                  </p>
+                  <Button onClick={() => navigate('/list-property')}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    List Your First Property
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-6">
@@ -298,6 +332,12 @@ const Dashboard = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      <AuthModal
+        isOpen={authModal.isOpen}
+        onClose={closeAuthModal}
+        initialType={authModal.type}
+      />
     </div>
   );
 };
