@@ -14,7 +14,7 @@ export interface PropertyWithStats {
   title: string;
   location: string;
   rent: number;
-  status: string;
+  status: 'active' | 'inactive' | 'rented' | 'pending_review' | 'draft';
   views: number;
   inquiries: number;
   rating: number;
@@ -92,12 +92,18 @@ export const fetchLandlordProperties = async (landlordId: string): Promise<Prope
           .select('id', { count: 'exact' })
           .eq('listing_id', property.id);
 
+        // Ensure the status is one of the allowed values
+        const validStatus = ['active', 'inactive', 'rented', 'pending_review', 'draft'];
+        const status = validStatus.includes(property.status as string) 
+          ? (property.status as 'active' | 'inactive' | 'rented' | 'pending_review' | 'draft')
+          : 'draft';
+
         return {
           id: property.id,
           title: property.title || 'Untitled Property',
           location: `${property.street_address}, ${property.city}, ${property.state}`,
           rent: property.monthly_rent || 0,
-          status: (property.status as string) || 'draft',
+          status,
           views: property.views_count || 0,
           inquiries: inquiriesCount || 0,
           rating: 4.5, // Mock rating

@@ -1,16 +1,22 @@
 
 import React, { useState } from 'react';
 import Header from '@/components/Header';
+import LiveChatWidget from '@/components/LiveChatWidget';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { MessageSquare, Phone, Mail, Clock, Shield, Home } from 'lucide-react';
+import { MessageSquare, Phone, Mail, Clock } from 'lucide-react';
 import AuthModal from '@/components/AuthModal';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { submitSupportTicket, sendSupportEmail } from '@/services/supportService';
 
 const Help = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [authModal, setAuthModal] = useState<{
     isOpen: boolean;
     type: 'login' | 'signup';
@@ -19,12 +25,92 @@ const Help = () => {
     type: 'login'
   });
 
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    subject: '',
+    message: ''
+  });
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleAuthClick = (type: 'login' | 'signup') => {
     setAuthModal({ isOpen: true, type });
   };
 
   const closeAuthModal = () => {
     setAuthModal({ ...authModal, isOpen: false });
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmitForm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.name || !formData.email || !formData.subject || !formData.message) {
+      toast({
+        variant: "destructive",
+        title: "Missing information",
+        description: "Please fill in all required fields."
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      // Submit support ticket to database
+      await submitSupportTicket({
+        ...formData,
+        user_id: user?.id
+      });
+
+      // Send email notification
+      await sendSupportEmail(formData);
+
+      toast({
+        title: "Message sent successfully!",
+        description: "We'll get back to you within 24 hours at " + formData.email
+      });
+
+      // Reset form
+      setFormData({
+        name: '',
+        email: '',
+        subject: '',
+        message: ''
+      });
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      toast({
+        variant: "destructive",
+        title: "Failed to send message",
+        description: "Please try again or contact us directly at workwithdevnaam@gmail.com"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handlePhoneCall = () => {
+    window.open('tel:+916205791382', '_self');
+    toast({
+      title: "Calling...",
+      description: "Opening phone dialer for +91 6205791382"
+    });
+  };
+
+  const handleSendEmail = () => {
+    const subject = encodeURIComponent('RentFair Support Request');
+    const body = encodeURIComponent('Hello RentFair Support Team,\n\nI need assistance with:\n\n[Please describe your issue]\n\nBest regards');
+    window.open(`mailto:workwithdevnaam@gmail.com?subject=${subject}&body=${body}`, '_self');
+    
+    toast({
+      title: "Email client opened",
+      description: "Opening your default email client"
+    });
   };
 
   const faqs = [
@@ -47,6 +133,10 @@ const Help = () => {
     {
       question: "How do I report a scam or fraudulent listing?",
       answer: "Use the 'Report' button on any listing or contact our support team directly. We take fraud very seriously and investigate all reports promptly."
+    },
+    {
+      question: "How can I contact RentFair support?",
+      answer: "You can reach us via phone (+91 6205791382), email (workwithdevnaam@gmail.com), live chat, or by filling out the contact form on this page."
     }
   ];
 
@@ -73,7 +163,10 @@ const Help = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600 mb-4">Get instant help from our support team</p>
-                <Button className="w-full">Start Chat</Button>
+                <Button className="w-full" onClick={() => {}}>
+                  Start Chat
+                </Button>
+                <p className="text-xs text-gray-500 mt-2">Chat widget available in bottom right corner</p>
               </CardContent>
             </Card>
 
@@ -85,9 +178,11 @@ const Help = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-600 mb-2">+91 98765 43210</p>
+                <p className="text-gray-600 mb-2">+91 6205791382</p>
                 <p className="text-sm text-gray-500 mb-4">Mon-Sat, 9 AM - 8 PM</p>
-                <Button variant="outline" className="w-full">Call Now</Button>
+                <Button variant="outline" className="w-full" onClick={handlePhoneCall}>
+                  Call Now
+                </Button>
               </CardContent>
             </Card>
 
@@ -99,9 +194,11 @@ const Help = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-600 mb-2">support@rentfair.com</p>
+                <p className="text-gray-600 mb-2">workwithdevnaam@gmail.com</p>
                 <p className="text-sm text-gray-500 mb-4">Response within 24 hours</p>
-                <Button variant="outline" className="w-full">Send Email</Button>
+                <Button variant="outline" className="w-full" onClick={handleSendEmail}>
+                  Send Email
+                </Button>
               </CardContent>
             </Card>
           </div>
@@ -130,32 +227,66 @@ const Help = () => {
                 <CardTitle>Send us a Message</CardTitle>
               </CardHeader>
               <CardContent>
-                <form className="space-y-4">
+                <form onSubmit={handleSubmitForm} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="name">Name</Label>
-                      <Input id="name" placeholder="Your name" />
+                      <Label htmlFor="name">Name *</Label>
+                      <Input 
+                        id="name" 
+                        placeholder="Your name"
+                        value={formData.name}
+                        onChange={(e) => handleInputChange('name', e.target.value)}
+                        required
+                      />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input id="email" type="email" placeholder="your@email.com" />
+                      <Label htmlFor="email">Email *</Label>
+                      <Input 
+                        id="email" 
+                        type="email" 
+                        placeholder="your@email.com"
+                        value={formData.email}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
+                        required
+                      />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="subject">Subject</Label>
-                    <Input id="subject" placeholder="How can we help?" />
+                    <Label htmlFor="subject">Subject *</Label>
+                    <Input 
+                      id="subject" 
+                      placeholder="How can we help?"
+                      value={formData.subject}
+                      onChange={(e) => handleInputChange('subject', e.target.value)}
+                      required
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="message">Message</Label>
-                    <Textarea id="message" placeholder="Describe your issue or question" rows={5} />
+                    <Label htmlFor="message">Message *</Label>
+                    <Textarea 
+                      id="message" 
+                      placeholder="Describe your issue or question" 
+                      rows={5}
+                      value={formData.message}
+                      onChange={(e) => handleInputChange('message', e.target.value)}
+                      required
+                    />
                   </div>
-                  <Button className="w-full">Send Message</Button>
+                  <Button 
+                    type="submit" 
+                    className="w-full"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? 'Sending...' : 'Send Message'}
+                  </Button>
                 </form>
               </CardContent>
             </Card>
           </div>
         </div>
       </div>
+
+      <LiveChatWidget />
 
       <AuthModal
         isOpen={authModal.isOpen}
