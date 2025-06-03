@@ -19,23 +19,36 @@ const PhotosVideoForm: React.FC<PhotosVideoFormProps> = ({ formData, updateFormD
   const { toast } = useToast();
 
   const uploadPhoto = async (file: File) => {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Math.random()}.${fileExt}`;
-    const filePath = `${supabase.auth.getUser().then(u => u.data.user?.id)}/${fileName}`;
+    try {
+      const user = await supabase.auth.getUser();
+      if (!user.data.user) {
+        throw new Error('User not authenticated');
+      }
 
-    const { error } = await supabase.storage
-      .from('property-photos')
-      .upload(filePath, file);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.data.user.id}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
 
-    if (error) {
+      const { error } = await supabase.storage
+        .from('property-photos')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) {
+        console.error('Upload error:', error);
+        throw error;
+      }
+
+      const { data } = supabase.storage
+        .from('property-photos')
+        .getPublicUrl(fileName);
+
+      return data.publicUrl;
+    } catch (error) {
+      console.error('Error in uploadPhoto:', error);
       throw error;
     }
-
-    const { data } = supabase.storage
-      .from('property-photos')
-      .getPublicUrl(filePath);
-
-    return data.publicUrl;
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -45,7 +58,20 @@ const PhotosVideoForm: React.FC<PhotosVideoFormProps> = ({ formData, updateFormD
     setUploading(true);
     
     try {
-      const uploadPromises = Array.from(files).map(uploadPhoto);
+      const uploadPromises = Array.from(files).map(file => {
+        // Validate file type
+        if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+          throw new Error(`Invalid file type: ${file.type}`);
+        }
+        
+        // Validate file size (5MB max)
+        if (file.size > 5 * 1024 * 1024) {
+          throw new Error(`File too large: ${file.name}`);
+        }
+        
+        return uploadPhoto(file);
+      });
+      
       const urls = await Promise.all(uploadPromises);
       
       updateFormData({
@@ -61,16 +87,41 @@ const PhotosVideoForm: React.FC<PhotosVideoFormProps> = ({ formData, updateFormD
       toast({
         variant: "destructive",
         title: "Upload failed",
-        description: "Failed to upload photos. Please try again."
+        description: error.message || "Failed to upload photos. Please try again."
       });
     } finally {
       setUploading(false);
     }
   };
 
-  const removePhoto = (index: number) => {
-    const updatedPhotos = formData.photos.filter((_, i) => i !== index);
-    updateFormData({ photos: updatedPhotos });
+  const removePhoto = async (index: number) => {
+    const photoUrl = formData.photos[index];
+    
+    try {
+      // Extract file path from URL
+      const urlParts = photoUrl.split('/');
+      const fileName = urlParts[urlParts.length - 2] + '/' + urlParts[urlParts.length - 1];
+      
+      // Delete from storage
+      await supabase.storage
+        .from('property-photos')
+        .remove([fileName]);
+      
+      const updatedPhotos = formData.photos.filter((_, i) => i !== index);
+      updateFormData({ photos: updatedPhotos });
+      
+      toast({
+        title: "Photo removed",
+        description: "Photo has been deleted successfully."
+      });
+    } catch (error) {
+      console.error('Error removing photo:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to remove photo. Please try again."
+      });
+    }
   };
 
   const validateVideoUrl = (url: string) => {
@@ -103,7 +154,7 @@ const PhotosVideoForm: React.FC<PhotosVideoFormProps> = ({ formData, updateFormD
                 Drag and drop photos here, or click to browse
               </p>
               <p className="text-xs text-gray-500">
-                Optimal aspect ratio: 16:9 or 4:3 | Max size: 5MB per photo
+                Optimal aspect ratio: 16:9 or 4:3 | Max size: 5MB per photo | Formats: JPEG, PNG, WebP
               </p>
               <input
                 type="file"

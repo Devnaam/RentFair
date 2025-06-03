@@ -36,11 +36,15 @@ export const useListingSubmission = () => {
     setIsSubmitting(true);
     
     try {
+      // Generate a title if not provided
+      const title = `${formData.property_type.replace('_', ' ')} in ${formData.city}`;
+      
       // Insert main listing
       const { data: listing, error: listingError } = await supabase
         .from('property_listings')
         .insert({
           landlord_id: user.id,
+          title: title,
           property_type: formData.property_type as any,
           street_address: formData.street_address,
           city: formData.city,
@@ -57,8 +61,8 @@ export const useListingSubmission = () => {
           flexibility_notes: formData.flexibility_notes,
           availability_date: formData.availability_date,
           broker_free: formData.broker_free,
-          monthly_rent: formData.monthly_rent,
-          security_deposit: formData.security_deposit,
+          monthly_rent: formData.monthly_rent || 0,
+          security_deposit: formData.security_deposit || 0,
           utilities_included: formData.utilities_included,
           amenities: formData.amenities,
           photos: formData.photos,
@@ -68,7 +72,10 @@ export const useListingSubmission = () => {
         .select()
         .single();
 
-      if (listingError) throw listingError;
+      if (listingError) {
+        console.error('Listing error:', listingError);
+        throw listingError;
+      }
 
       // Insert additional fees if any
       if (formData.additional_fees.length > 0) {
@@ -83,7 +90,10 @@ export const useListingSubmission = () => {
             }))
           );
 
-        if (feesError) throw feesError;
+        if (feesError) {
+          console.error('Fees error:', feesError);
+          throw feesError;
+        }
       }
 
       toast({
@@ -93,15 +103,17 @@ export const useListingSubmission = () => {
           : "Your property listing has been published successfully!"
       });
 
-      // Redirect to dashboard (we'll create this later)
-      window.location.href = '/dashboard';
+      // Redirect to dashboard
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 1500);
       
     } catch (error: any) {
       console.error('Error creating listing:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to create listing. Please try again."
+        description: error.message || "Failed to create listing. Please try again."
       });
     } finally {
       setIsSubmitting(false);

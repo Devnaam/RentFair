@@ -11,6 +11,7 @@ import AmenitiesForm from '@/components/listing/AmenitiesForm';
 import ListingPreview from '@/components/listing/ListingPreview';
 import ListPropertyHeader from '@/components/listing/ListPropertyHeader';
 import TermsAndConditions from '@/components/listing/TermsAndConditions';
+import PropertyFormActions from '@/components/listing/PropertyFormActions';
 import { useListingSubmission } from '@/hooks/useListingSubmission';
 import { ListingFormData } from '@/types/listing';
 
@@ -73,6 +74,18 @@ const ListProperty = () => {
     setFormData(prev => ({ ...prev, ...section }));
   };
 
+  const handlePreview = () => {
+    setShowPreview(true);
+  };
+
+  const handleSaveDraft = () => {
+    handleSubmit(formData, true);
+  };
+
+  const handlePublish = () => {
+    handleSubmit(formData, false);
+  };
+
   if (showPreview) {
     return <ListingPreview formData={formData} onBack={() => setShowPreview(false)} />;
   }
@@ -81,9 +94,9 @@ const ListProperty = () => {
     <div className="min-h-screen bg-gray-50">
       <ListPropertyHeader
         formData={formData}
-        onPreview={() => setShowPreview(true)}
-        onSaveDraft={() => handleSubmit(formData, true)}
-        onPublish={() => handleSubmit(formData, false)}
+        onPreview={handlePreview}
+        onSaveDraft={handleSaveDraft}
+        onPublish={handlePublish}
         isSubmitting={isSubmitting}
       />
 
@@ -93,6 +106,13 @@ const ListProperty = () => {
         <PhotosVideoForm formData={formData} updateFormData={updateFormData} />
         <AmenitiesForm formData={formData} updateFormData={updateFormData} />
         <TermsAndConditions />
+        <PropertyFormActions
+          formData={formData}
+          onPreview={handlePreview}
+          onSaveDraft={handleSaveDraft}
+          onPublish={handlePublish}
+          isSubmitting={isSubmitting}
+        />
       </div>
     </div>
   );
