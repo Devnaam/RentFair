@@ -36,15 +36,11 @@ export const useListingSubmission = () => {
     setIsSubmitting(true);
     
     try {
-      // Generate a title if not provided
-      const title = `${formData.property_type.replace('_', ' ')} in ${formData.city}`;
-      
-      // Insert main listing
+      // Insert main listing (without title since it's generated)
       const { data: listing, error: listingError } = await supabase
         .from('property_listings')
         .insert({
           landlord_id: user.id,
-          title: title,
           property_type: formData.property_type as any,
           street_address: formData.street_address,
           city: formData.city,

@@ -14,6 +14,8 @@ import Inquiries from "./pages/Inquiries";
 import Help from "./pages/Help";
 import Safety from "./pages/Safety";
 import About from "./pages/About";
+import TermsAndConditions from "./pages/TermsAndConditions";
+import ListingPolicy from "./pages/ListingPolicy";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +37,8 @@ const App = () => (
             <Route path="/help" element={<Help />} />
             <Route path="/safety" element={<Safety />} />
             <Route path="/about" element={<About />} />
+            <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+            <Route path="/listing-policy" element={<ListingPolicy />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
