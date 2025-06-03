@@ -15,7 +15,8 @@ import {
   Trash2,
   TrendingUp,
   Users,
-  IndianRupee
+  IndianRupee,
+  Send
 } from 'lucide-react';
 import AuthModal from '@/components/AuthModal';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,7 +25,8 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   fetchDashboardStats, 
   fetchLandlordProperties, 
-  deleteProperty 
+  deleteProperty,
+  updatePropertyStatus 
 } from '@/services/dashboardService';
 
 const Dashboard = () => {
@@ -83,10 +85,34 @@ const Dashboard = () => {
     }
   });
 
+  // Publish property mutation
+  const publishPropertyMutation = useMutation({
+    mutationFn: (propertyId: string) => updatePropertyStatus(propertyId, 'active'),
+    onSuccess: () => {
+      toast({
+        title: "Property published successfully",
+        description: "Your property is now live and visible to tenants."
+      });
+      queryClient.invalidateQueries({ queryKey: ['landlord-properties'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Failed to publish property",
+        description: error.message
+      });
+    }
+  });
+
   const handleDeleteProperty = (propertyId: string) => {
     if (window.confirm('Are you sure you want to delete this property? This action cannot be undone.')) {
       deletePropertyMutation.mutate(propertyId);
     }
+  };
+
+  const handlePublishProperty = (propertyId: string) => {
+    publishPropertyMutation.mutate(propertyId);
   };
 
   const handleViewProperty = (propertyId: string) => {
@@ -290,6 +316,17 @@ const Dashboard = () => {
                             <Eye className="w-4 h-4 mr-2" />
                             View
                           </Button>
+                          {property.status === 'draft' && (
+                            <Button 
+                              size="sm"
+                              onClick={() => handlePublishProperty(property.id)}
+                              disabled={publishPropertyMutation.isPending}
+                              className="bg-green-600 hover:bg-green-700"
+                            >
+                              <Send className="w-4 h-4 mr-2" />
+                              Publish
+                            </Button>
+                          )}
                           <Button 
                             variant="outline" 
                             size="sm"

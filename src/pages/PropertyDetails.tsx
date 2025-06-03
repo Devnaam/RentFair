@@ -19,7 +19,8 @@ import {
   BedDouble,
   Bath,
   Home,
-  Calendar
+  Calendar,
+  Send
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -59,12 +60,15 @@ const PropertyDetails = () => {
     enabled: !!id
   });
 
-  // Update property mutation
+  // Update property mutation (exclude title from updates)
   const updatePropertyMutation = useMutation({
     mutationFn: async (updatedData: any) => {
+      // Remove title from the update data since it's auto-generated
+      const { title, ...dataToUpdate } = updatedData;
+      
       const { error } = await supabase
         .from('property_listings')
-        .update(updatedData)
+        .update(dataToUpdate)
         .eq('id', id);
       
       if (error) throw error;
@@ -76,12 +80,39 @@ const PropertyDetails = () => {
       });
       setIsEditing(false);
       queryClient.invalidateQueries({ queryKey: ['property', id] });
-      queryClient.invalidateQueries({ queryKey: ['properties'] });
+      queryClient.invalidateQueries({ queryKey: ['landlord-properties'] });
     },
     onError: (error: any) => {
       toast({
         variant: "destructive",
         title: "Failed to update property",
+        description: error.message
+      });
+    }
+  });
+
+  // Publish property mutation
+  const publishPropertyMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from('property_listings')
+        .update({ status: 'active' })
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Property published successfully",
+        description: "Your property is now live and visible to tenants."
+      });
+      queryClient.invalidateQueries({ queryKey: ['property', id] });
+      queryClient.invalidateQueries({ queryKey: ['landlord-properties'] });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Failed to publish property",
         description: error.message
       });
     }
@@ -129,6 +160,10 @@ const PropertyDetails = () => {
 
   const handleSave = () => {
     updatePropertyMutation.mutate(editData);
+  };
+
+  const handlePublish = () => {
+    publishPropertyMutation.mutate();
   };
 
   const handleDelete = () => {
@@ -226,6 +261,17 @@ const PropertyDetails = () => {
                     <Edit className="w-4 h-4 mr-2" />
                     Edit
                   </Button>
+                  {property.status === 'draft' && (
+                    <Button
+                      size="sm"
+                      onClick={handlePublish}
+                      disabled={publishPropertyMutation.isPending}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <Send className="w-4 h-4 mr-2" />
+                      Publish
+                    </Button>
+                  )}
                   <Button
                     variant="destructive"
                     size="sm"
@@ -248,16 +294,7 @@ const PropertyDetails = () => {
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div>
-                    {isEditing ? (
-                      <Input
-                        value={editData.title || ''}
-                        onChange={(e) => setEditData({...editData, title: e.target.value})}
-                        className="text-xl font-bold mb-2"
-                        placeholder="Property title"
-                      />
-                    ) : (
-                      <CardTitle className="text-xl">{property.title}</CardTitle>
-                    )}
+                    <CardTitle className="text-xl">{property.title}</CardTitle>
                     <div className="flex items-center text-gray-600 mt-2">
                       <MapPin className="w-4 h-4 mr-1" />
                       {isEditing ? (

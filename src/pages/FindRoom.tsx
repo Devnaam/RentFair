@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AuthModal from '@/components/AuthModal';
 import usePropertySearch, { SearchFilters } from '@/hooks/usePropertySearch';
-import { getFeaturedProperties, getAllActiveProperties } from '@/services/propertySearchService';
+import { getAllActiveProperties } from '@/services/propertySearchService';
 import { useQuery } from '@tanstack/react-query';
 
 const FindRoom = () => {
@@ -35,10 +35,10 @@ const FindRoom = () => {
   const [hasSearched, setHasSearched] = useState(false);
   const [userLocation, setUserLocation] = useState<string>('');
 
-  // Load all active properties when no search has been performed
+  // Load all active properties from all users when no search has been performed
   const { data: allProperties, isLoading: loadingAll } = useQuery({
     queryKey: ['allActiveProperties'],
-    queryFn: () => getAllActiveProperties(20),
+    queryFn: () => getAllActiveProperties(50), // Increased limit to show more properties
     enabled: !hasSearched && !isLoading
   });
 
@@ -126,9 +126,14 @@ const FindRoom = () => {
           <CardHeader>
             <CardTitle>
               Find Your Perfect Room
-              {userLocation && userLocation !== 'Unknown' && (
+              {!hasSearched && (
                 <span className="text-sm font-normal text-gray-600 block mt-1">
-                  {hasSearched ? `Search results ${filters.location ? `for ${filters.location}` : ''}` : `Showing properties near ${userLocation}`}
+                  Showing all available properties
+                </span>
+              )}
+              {hasSearched && userLocation && userLocation !== 'Unknown' && (
+                <span className="text-sm font-normal text-gray-600 block mt-1">
+                  Search results {filters.location ? `for ${filters.location}` : ''}
                 </span>
               )}
             </CardTitle>
@@ -204,7 +209,7 @@ const FindRoom = () => {
           properties={displayProperties} 
           isLoading={displayLoading} 
           error={error}
-          title={hasSearched ? 'Search Results' : (userLocation && userLocation !== 'Unknown' ? `Properties near ${userLocation}` : 'Available Properties')}
+          title={hasSearched ? 'Search Results' : 'All Available Properties'}
         />
 
         {/* Message when no properties are found */}

@@ -92,12 +92,13 @@ export const fetchLandlordProperties = async (landlordId: string): Promise<Prope
           .select('id', { count: 'exact' })
           .eq('listing_id', property.id);
 
-        // Ensure the status is one of the allowed values with proper type assertion
+        // Type assertion with proper validation
         const validStatuses = ['active', 'inactive', 'rented', 'pending_review', 'draft'] as const;
-        const status: 'active' | 'inactive' | 'rented' | 'pending_review' | 'draft' = 
-          validStatuses.includes(property.status as any) 
-            ? property.status as 'active' | 'inactive' | 'rented' | 'pending_review' | 'draft'
-            : 'draft';
+        let status: 'active' | 'inactive' | 'rented' | 'pending_review' | 'draft' = 'draft';
+        
+        if (property.status && validStatuses.includes(property.status as any)) {
+          status = property.status as 'active' | 'inactive' | 'rented' | 'pending_review' | 'draft';
+        }
 
         return {
           id: property.id,
