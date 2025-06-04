@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface DashboardStats {
@@ -92,26 +91,24 @@ export const fetchLandlordProperties = async (landlordId: string): Promise<Prope
           .select('id', { count: 'exact' })
           .eq('listing_id', property.id);
 
-        // Define valid statuses
+        // Define valid statuses and ensure type safety
         const validStatuses = ['active', 'inactive', 'rented', 'pending_review', 'draft'] as const;
         type ValidStatus = typeof validStatuses[number];
         
-        // Default to 'draft' and validate the status
-        let status: ValidStatus = 'draft';
-        
-        if (property.status && typeof property.status === 'string') {
-          const isValidStatus = validStatuses.includes(property.status as ValidStatus);
-          if (isValidStatus) {
-            status = property.status as ValidStatus;
+        // Safely handle status with proper type checking
+        const getValidStatus = (status: any): ValidStatus => {
+          if (typeof status === 'string' && validStatuses.includes(status as ValidStatus)) {
+            return status as ValidStatus;
           }
-        }
+          return 'draft';
+        };
 
         return {
           id: property.id,
           title: property.title || 'Untitled Property',
           location: `${property.street_address}, ${property.city}, ${property.state}`,
           rent: property.monthly_rent || 0,
-          status,
+          status: getValidStatus(property.status),
           views: property.views_count || 0,
           inquiries: inquiriesCount || 0,
           rating: 4.5, // Mock rating
@@ -154,5 +151,65 @@ export const updatePropertyStatus = async (propertyId: string, status: string): 
   } catch (error) {
     console.error('Error updating property status:', error);
     throw error;
+  }
+};
+
+// New function to get a sample property for the homepage
+export const fetchSampleProperty = async (): Promise<PropertyWithStats | null> => {
+  try {
+    const { data: property, error } = await supabase
+      .from('property_listings')
+      .select(`
+        id,
+        title,
+        street_address,
+        city,
+        state,
+        monthly_rent,
+        status,
+        views_count,
+        created_at,
+        updated_at,
+        landlord_id
+      `)
+      .eq('status', 'active')
+      .limit(1)
+      .single();
+
+    if (error || !property) return null;
+
+    // Get inquiries count
+    const { count: inquiriesCount } = await supabase
+      .from('property_inquiries')
+      .select('id', { count: 'exact' })
+      .eq('listing_id', property.id);
+
+    // Define valid statuses and ensure type safety
+    const validStatuses = ['active', 'inactive', 'rented', 'pending_review', 'draft'] as const;
+    type ValidStatus = typeof validStatuses[number];
+    
+    const getValidStatus = (status: any): ValidStatus => {
+      if (typeof status === 'string' && validStatuses.includes(status as ValidStatus)) {
+        return status as ValidStatus;
+      }
+      return 'draft';
+    };
+
+    return {
+      id: property.id,
+      title: property.title || 'Untitled Property',
+      location: `${property.street_address}, ${property.city}, ${property.state}`,
+      rent: property.monthly_rent || 0,
+      status: getValidStatus(property.status),
+      views: property.views_count || 0,
+      inquiries: inquiriesCount || 0,
+      rating: 4.5,
+      reviews: Math.floor(Math.random() * 20),
+      created_at: property.created_at,
+      updated_at: property.updated_at
+    };
+  } catch (error) {
+    console.error('Error fetching sample property:', error);
+    return null;
   }
 };

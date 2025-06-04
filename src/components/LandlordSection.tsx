@@ -1,11 +1,29 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus, TrendingUp, Shield, MessageSquare, Star, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { fetchSampleProperty, PropertyWithStats } from '@/services/dashboardService';
 
 const LandlordSection: React.FC = () => {
   const navigate = useNavigate();
+  const [sampleProperty, setSampleProperty] = useState<PropertyWithStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadSampleProperty = async () => {
+      try {
+        const property = await fetchSampleProperty();
+        setSampleProperty(property);
+      } catch (error) {
+        console.error('Error loading sample property:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSampleProperty();
+  }, []);
 
   const benefits = [
     {
@@ -39,6 +57,38 @@ const LandlordSection: React.FC = () => {
       description: 'Simple tools to create, edit, and manage your property listings'
     }
   ];
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'bg-green-100 text-green-800';
+      case 'rented':
+        return 'bg-blue-100 text-blue-800';
+      case 'pending_review':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'inactive':
+        return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'Active';
+      case 'rented':
+        return 'Rented';
+      case 'pending_review':
+        return 'Pending Review';
+      case 'inactive':
+        return 'Inactive';
+      case 'draft':
+        return 'Draft';
+      default:
+        return 'Draft';
+    }
+  };
 
   return (
     <section id="for-landlords" className="py-20 bg-gradient-to-br from-blue-50 to-indigo-50">
@@ -86,14 +136,18 @@ const LandlordSection: React.FC = () => {
             </div>
           </div>
 
-          {/* Visual */}
+          {/* Visual - Property Card */}
           <div className="relative">
             <div className="bg-white rounded-2xl shadow-xl p-8">
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-900">Property Listing</h3>
-                  <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
-                    Active
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    {loading ? 'Loading...' : sampleProperty ? sampleProperty.title : 'Property Listing'}
+                  </h3>
+                  <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                    sampleProperty ? getStatusColor(sampleProperty.status) : 'bg-green-100 text-green-800'
+                  }`}>
+                    {sampleProperty ? getStatusText(sampleProperty.status) : 'Active'}
                   </div>
                 </div>
                 
@@ -106,22 +160,36 @@ const LandlordSection: React.FC = () => {
                 
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Location</span>
+                    <span className="font-semibold text-gray-900 text-sm text-right max-w-48 truncate">
+                      {sampleProperty ? sampleProperty.location : 'Sample Location'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
                     <span className="text-gray-600">Monthly Rent</span>
-                    <span className="font-semibold text-gray-900">₹12,000</span>
+                    <span className="font-semibold text-gray-900">
+                      ₹{sampleProperty ? sampleProperty.rent.toLocaleString() : '12,000'}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">Views This Week</span>
-                    <span className="font-semibold text-primary">147</span>
+                    <span className="font-semibold text-primary">
+                      {sampleProperty ? sampleProperty.views : '147'}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">Inquiries</span>
-                    <span className="font-semibold text-green-600">8 New</span>
+                    <span className="font-semibold text-green-600">
+                      {sampleProperty ? sampleProperty.inquiries : '8'} New
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">Rating</span>
                     <div className="flex items-center">
                       <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                      <span className="font-semibold text-gray-900 ml-1">4.8</span>
+                      <span className="font-semibold text-gray-900 ml-1">
+                        {sampleProperty ? sampleProperty.rating : '4.8'}
+                      </span>
                     </div>
                   </div>
                 </div>
