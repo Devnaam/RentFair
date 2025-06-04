@@ -96,7 +96,7 @@ export const fetchLandlordProperties = async (landlordId: string): Promise<Prope
         const validStatuses = ['active', 'inactive', 'rented', 'pending_review', 'draft'] as const;
         let status: 'active' | 'inactive' | 'rented' | 'pending_review' | 'draft' = 'draft';
         
-        if (property.status && validStatuses.includes(property.status as any)) {
+        if (property.status && validStatuses.includes(property.status as typeof validStatuses[number])) {
           status = property.status as 'active' | 'inactive' | 'rented' | 'pending_review' | 'draft';
         }
 
