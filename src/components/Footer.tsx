@@ -35,7 +35,7 @@ const Footer: React.FC = () => {
         { name: 'About RentFair', path: '/about' },
         { name: 'Our Mission', path: '/about' },
         { name: 'Safety', path: '/safety' },
-        { name: 'Contact Us', path: '/help' },
+        { name: 'Contact Us', path: '/contact' },
         { name: 'Help Center', path: '/help' },
         { name: 'Support', path: '/help' }
       ]
@@ -44,10 +44,10 @@ const Footer: React.FC = () => {
       title: 'Support',
       links: [
         { name: 'Help Center', path: '/help' },
-        { name: 'Customer Support', path: '/help' },
-        { name: 'Report an Issue', path: '/help' },
+        { name: 'Customer Support', path: '/contact' },
+        { name: 'Report an Issue', path: '/contact' },
         { name: 'Safety Guidelines', path: '/safety' },
-        { name: 'Privacy Policy', path: '/help' },
+        { name: 'Privacy Policy', path: '/privacy-policy' },
         { name: 'Community Guidelines', path: '/safety' }
       ]
     }
@@ -115,19 +115,19 @@ const Footer: React.FC = () => {
             
             <div className="flex items-center space-x-6">
               <button 
-                onClick={() => navigate('/help')}
+                onClick={() => navigate('/privacy-policy')}
                 className="text-gray-400 hover:text-white transition-colors text-sm"
               >
                 Privacy Policy
               </button>
               <button 
-                onClick={() => navigate('/help')}
+                onClick={() => navigate('/terms-and-conditions')}
                 className="text-gray-400 hover:text-white transition-colors text-sm"
               >
                 Terms of Service
               </button>
               <button 
-                onClick={() => navigate('/help')}
+                onClick={() => navigate('/cookie-policy')}
                 className="text-gray-400 hover:text-white transition-colors text-sm"
               >
                 Cookie Policy

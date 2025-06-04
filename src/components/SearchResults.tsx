@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,8 @@ const SearchResults: React.FC<SearchResultsProps> = ({
   error, 
   title = "Search Results" 
 }) => {
+  const navigate = useNavigate();
+
   const getAmenityIcon = (amenity: string) => {
     switch (amenity.toLowerCase()) {
       case 'wifi':
@@ -41,6 +44,10 @@ const SearchResults: React.FC<SearchResultsProps> = ({
       'shared_room': 'Shared Room'
     };
     return typeMap[type] || type;
+  };
+
+  const handleViewDetails = (propertyId: string) => {
+    navigate(`/property/${propertyId}`);
   };
 
   if (isLoading) {
@@ -145,7 +152,12 @@ const SearchResults: React.FC<SearchResultsProps> = ({
                 )}
                 
                 <div className="space-y-2">
-                  <Button className="w-full">View Details</Button>
+                  <Button 
+                    className="w-full" 
+                    onClick={() => handleViewDetails(property.id)}
+                  >
+                    View Details
+                  </Button>
                   <div className="text-xs text-gray-500 text-center">
                     Security Deposit: ₹{property.security_deposit.toLocaleString()}
                   </div>

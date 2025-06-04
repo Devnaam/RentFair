@@ -1,208 +1,179 @@
 
 import React from 'react';
+import { UseFormReturn } from 'react-hook-form';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Trash2 } from 'lucide-react';
+import { Trash2, Plus } from 'lucide-react';
 import { ListingFormData } from '@/types/listing';
 
 interface RentFeesFormProps {
-  formData: ListingFormData;
-  updateFormData: (data: Partial<ListingFormData>) => void;
+  form: UseFormReturn<ListingFormData>;
 }
 
-const RentFeesForm: React.FC<RentFeesFormProps> = ({ formData, updateFormData }) => {
-  const utilitiesOptions = [
-    'Electricity', 'Water', 'Wi-Fi', 'Gas', 'Maintenance', 'Security'
-  ];
+const RentFeesForm: React.FC<RentFeesFormProps> = ({ form }) => {
+  const { register, watch, setValue, formState: { errors } } = form;
+  const additionalFees = watch('additionalFees') || [];
 
-  const handleUtilityChange = (utility: string, checked: boolean) => {
-    const updatedUtilities = checked
-      ? [...formData.utilities_included, utility]
-      : formData.utilities_included.filter(u => u !== utility);
-    updateFormData({ utilities_included: updatedUtilities });
+  const addFee = () => {
+    const currentFees = additionalFees || [];
+    setValue('additionalFees', [
+      ...currentFees,
+      { feeName: '', amount: 0, frequency: 'monthly' }
+    ]);
   };
 
-  const addAdditionalFee = () => {
-    updateFormData({
-      additional_fees: [
-        ...formData.additional_fees,
-        { fee_name: '', amount: 0, frequency: 'monthly' }
-      ]
-    });
+  const removeFee = (index: number) => {
+    const currentFees = additionalFees || [];
+    setValue('additionalFees', currentFees.filter((_, i) => i !== index));
   };
 
-  const updateAdditionalFee = (index: number, field: string, value: string | number) => {
-    const updatedFees = formData.additional_fees.map((fee, i) => {
-      if (i === index) {
-        return { ...fee, [field]: value };
-      }
-      return fee;
-    });
-    updateFormData({ additional_fees: updatedFees });
+  const updateFee = (index: number, field: string, value: string | number) => {
+    const currentFees = additionalFees || [];
+    const updatedFees = [...currentFees];
+    if (field === 'amount') {
+      updatedFees[index] = { ...updatedFees[index], [field]: Number(value) };
+    } else {
+      updatedFees[index] = { ...updatedFees[index], [field]: value };
+    }
+    setValue('additionalFees', updatedFees);
   };
-
-  const removeAdditionalFee = (index: number) => {
-    const updatedFees = formData.additional_fees.filter((_, i) => i !== index);
-    updateFormData({ additional_fees: updatedFees });
-  };
-
-  // AI Price Estimation (mock for now)
-  const getEstimatedRent = () => {
-    if (!formData.property_type || !formData.city) return null;
-    
-    // Mock estimation based on property type and city
-    const baseRent = {
-      'single_room': 8000,
-      'full_flat_1bhk': 15000,
-      'full_flat_2bhk': 25000,
-      'full_flat_3bhk_plus': 35000,
-      'pg_hostel_room': 6000,
-      'shared_room': 5000
-    }[formData.property_type] || 10000;
-
-    const min = Math.round(baseRent * 0.8);
-    const max = Math.round(baseRent * 1.2);
-    
-    return { min, max };
-  };
-
-  const estimatedRent = getEstimatedRent();
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Rent & Fees</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Monthly Rent */}
-        <div className="space-y-2">
-          <Label htmlFor="monthly_rent">Monthly Rent (₹) *</Label>
-          <Input
-            id="monthly_rent"
-            type="number"
-            value={formData.monthly_rent?.toString() || ''}
-            onChange={(e) => {
-              const value = e.target.value;
-              const numValue = value ? parseInt(value, 10) : null;
-              updateFormData({ monthly_rent: numValue });
-            }}
-            placeholder="Enter monthly rent"
-          />
-          {estimatedRent && (
-            <p className="text-sm text-blue-600 bg-blue-50 p-2 rounded">
-              💡 AI Estimate: Based on similar properties, a fair rent could be ₹{estimatedRent.min.toLocaleString()} - ₹{estimatedRent.max.toLocaleString()}
-            </p>
-          )}
-        </div>
-
-        {/* Security Deposit */}
-        <div className="space-y-2">
-          <Label htmlFor="security_deposit">Security Deposit (₹) *</Label>
-          <Input
-            id="security_deposit"
-            type="number"
-            value={formData.security_deposit?.toString() || ''}
-            onChange={(e) => {
-              const value = e.target.value;
-              const numValue = value ? parseInt(value, 10) : null;
-              updateFormData({ security_deposit: numValue });
-            }}
-            placeholder="Enter security deposit"
-          />
-        </div>
-
-        {/* Additional Fees */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Label>Additional Fees (Optional)</Label>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={addAdditionalFee}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Fee
-            </Button>
-          </div>
-          
-          {formData.additional_fees.map((fee, index) => (
-            <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-3 p-3 border rounded-lg">
-              <div className="space-y-1">
-                <Label className="text-xs">Fee Name</Label>
-                <Input
-                  value={fee.fee_name}
-                  onChange={(e) => updateAdditionalFee(index, 'fee_name', e.target.value)}
-                  placeholder="e.g., Maintenance"
-                  size="sm"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Amount (₹)</Label>
-                <Input
-                  type="number"
-                  value={fee.amount?.toString() || ''}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    const numValue = value ? parseFloat(value) : 0;
-                    updateAdditionalFee(index, 'amount', numValue);
-                  }}
-                  placeholder="Amount"
-                  size="sm"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Frequency</Label>
-                <Select
-                  value={fee.frequency}
-                  onValueChange={(value) => updateAdditionalFee(index, 'frequency', value)}
-                >
-                  <SelectTrigger className="h-8">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="one_time">One-time</SelectItem>
-                    <SelectItem value="monthly">Monthly</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-end">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => removeAdditionalFee(index)}
-                  className="h-8"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Rent & Fees</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Monthly Rent */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="monthlyRent">Monthly Rent (₹) *</Label>
+              <Input
+                id="monthlyRent"
+                type="number"
+                {...register('monthlyRent', { 
+                  required: 'Monthly rent is required',
+                  min: { value: 1, message: 'Rent must be greater than 0' },
+                  valueAsNumber: true
+                })}
+                placeholder="Enter monthly rent"
+              />
+              {errors.monthlyRent && (
+                <p className="text-red-500 text-sm mt-1">{errors.monthlyRent.message}</p>
+              )}
             </div>
-          ))}
-        </div>
 
-        {/* Utilities Included */}
-        <div className="space-y-3">
-          <Label>Utilities Included</Label>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {utilitiesOptions.map(utility => (
-              <div key={utility} className="flex items-center space-x-2">
-                <Checkbox
-                  id={utility}
-                  checked={formData.utilities_included.includes(utility)}
-                  onCheckedChange={(checked) => handleUtilityChange(utility, checked as boolean)}
+            <div>
+              <Label htmlFor="securityDeposit">Security Deposit (₹) *</Label>
+              <Input
+                id="securityDeposit"
+                type="number"
+                {...register('securityDeposit', { 
+                  required: 'Security deposit is required',
+                  min: { value: 0, message: 'Security deposit cannot be negative' },
+                  valueAsNumber: true
+                })}
+                placeholder="Enter security deposit"
+              />
+              {errors.securityDeposit && (
+                <p className="text-red-500 text-sm mt-1">{errors.securityDeposit.message}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Broker Fee */}
+          <div>
+            <Label>Broker Fee</Label>
+            <div className="flex items-center space-x-4 mt-2">
+              <label className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  {...register('brokerFree')}
+                  value="true"
+                  className="w-4 h-4"
                 />
-                <Label htmlFor={utility} className="text-sm">{utility}</Label>
+                <span>No Broker Fee</span>
+              </label>
+              <label className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  {...register('brokerFree')}
+                  value="false"
+                  className="w-4 h-4"
+                />
+                <span>Broker Fee Applicable</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Additional Fees */}
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <Label>Additional Fees (Optional)</Label>
+              <Button type="button" onClick={addFee} variant="outline" size="sm">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Fee
+              </Button>
+            </div>
+
+            {additionalFees.map((fee, index) => (
+              <div key={index} className="border p-4 rounded-lg mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                  <div>
+                    <Label>Fee Name</Label>
+                    <Input
+                      value={fee.feeName}
+                      onChange={(e) => updateFee(index, 'feeName', e.target.value)}
+                      placeholder="e.g., Maintenance"
+                    />
+                  </div>
+                  <div>
+                    <Label>Amount (₹)</Label>
+                    <Input
+                      type="number"
+                      value={fee.amount || ''}
+                      onChange={(e) => updateFee(index, 'amount', parseInt(e.target.value) || 0)}
+                      placeholder="Enter amount"
+                    />
+                  </div>
+                  <div>
+                    <Label>Frequency</Label>
+                    <Select 
+                      value={fee.frequency} 
+                      onValueChange={(value) => updateFee(index, 'frequency', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="monthly">Monthly</SelectItem>
+                        <SelectItem value="quarterly">Quarterly</SelectItem>
+                        <SelectItem value="yearly">Yearly</SelectItem>
+                        <SelectItem value="one-time">One-time</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Button 
+                      type="button" 
+                      onClick={() => removeFee(index)} 
+                      variant="outline" 
+                      size="sm"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

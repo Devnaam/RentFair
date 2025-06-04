@@ -94,10 +94,12 @@ export const fetchLandlordProperties = async (landlordId: string): Promise<Prope
 
         // Type assertion with proper validation
         const validStatuses = ['active', 'inactive', 'rented', 'pending_review', 'draft'] as const;
-        let status: 'active' | 'inactive' | 'rented' | 'pending_review' | 'draft' = 'draft';
+        type ValidStatus = typeof validStatuses[number];
         
-        if (property.status && validStatuses.includes(property.status as typeof validStatuses[number])) {
-          status = property.status as 'active' | 'inactive' | 'rented' | 'pending_review' | 'draft';
+        let status: ValidStatus = 'draft';
+        
+        if (property.status && validStatuses.includes(property.status as ValidStatus)) {
+          status = property.status as ValidStatus;
         }
 
         return {

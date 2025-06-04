@@ -14,6 +14,9 @@ import Inquiries from "./pages/Inquiries";
 import Help from "./pages/Help";
 import Safety from "./pages/Safety";
 import About from "./pages/About";
+import Contact from "./pages/Contact";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import CookiePolicy from "./pages/CookiePolicy";
 import TermsAndConditions from "./pages/TermsAndConditions";
 import ListingPolicy from "./pages/ListingPolicy";
 import NotFound from "./pages/NotFound";
@@ -37,6 +40,9 @@ const App = () => (
             <Route path="/help" element={<Help />} />
             <Route path="/safety" element={<Safety />} />
             <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/cookie-policy" element={<CookiePolicy />} />
             <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
             <Route path="/listing-policy" element={<ListingPolicy />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

@@ -70,11 +70,15 @@ const HeroSection: React.FC = () => {
                   <SelectValue placeholder="Budget" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="0-5000">Under ₹5,000</SelectItem>
-                  <SelectItem value="5000-10000">₹5,000 - ₹10,000</SelectItem>
-                  <SelectItem value="10000-15000">₹10,000 - ₹15,000</SelectItem>
-                  <SelectItem value="15000-25000">₹15,000 - ₹25,000</SelectItem>
-                  <SelectItem value="25000+">₹25,000+</SelectItem>
+                  <SelectItem value="0-3000">Under ₹3,000</SelectItem>
+                  <SelectItem value="3000-5000">₹3,000 - ₹5,000</SelectItem>
+                  <SelectItem value="5000-8000">₹5,000 - ₹8,000</SelectItem>
+                  <SelectItem value="8000-12000">₹8,000 - ₹12,000</SelectItem>
+                  <SelectItem value="12000-18000">₹12,000 - ₹18,000</SelectItem>
+                  <SelectItem value="18000-25000">₹18,000 - ₹25,000</SelectItem>
+                  <SelectItem value="25000-35000">₹25,000 - ₹35,000</SelectItem>
+                  <SelectItem value="35000-50000">₹35,000 - ₹50,000</SelectItem>
+                  <SelectItem value="50000+">₹50,000+</SelectItem>
                 </SelectContent>
               </Select>
             </div>
