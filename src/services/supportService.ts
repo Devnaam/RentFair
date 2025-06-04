@@ -39,13 +39,39 @@ export const sendSupportEmail = async (emailData: {
   message: string;
 }): Promise<void> => {
   try {
-    const { error } = await supabase.functions.invoke('send-support-email', {
+    console.log('Attempting to send support email:', emailData);
+    
+    const { data, error } = await supabase.functions.invoke('send-support-email', {
       body: emailData
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase function error:', error);
+      throw error;
+    }
+
+    console.log('Support email sent successfully:', data);
   } catch (error) {
     console.error('Error sending support email:', error);
+    // Re-throw the error so the component can handle it
     throw error;
   }
+};
+
+// Fallback function to open email client directly
+export const openEmailClient = (emailData: {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+}): void => {
+  const subject = encodeURIComponent(`Support Request: ${emailData.subject}`);
+  const body = encodeURIComponent(
+    `Name: ${emailData.name}\n` +
+    `Email: ${emailData.email}\n\n` +
+    `Message:\n${emailData.message}\n\n` +
+    `--\nSent from RentFair Help Form`
+  );
+  
+  window.open(`mailto:workwithdevnaam@gmail.com?subject=${subject}&body=${body}`, '_self');
 };

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Header from '@/components/Header';
 import LiveChatWidget from '@/components/LiveChatWidget';
@@ -12,7 +11,7 @@ import { MessageSquare, Phone, Mail, Clock } from 'lucide-react';
 import AuthModal from '@/components/AuthModal';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { submitSupportTicket, sendSupportEmail } from '@/services/supportService';
+import { submitSupportTicket, sendSupportEmail, openEmailClient } from '@/services/supportService';
 
 const Help = () => {
   const { user } = useAuth();
@@ -61,19 +60,31 @@ const Help = () => {
     setIsSubmitting(true);
     
     try {
+      console.log('Submitting support form:', formData);
+      
       // Submit support ticket to database
       await submitSupportTicket({
         ...formData,
         user_id: user?.id
       });
 
-      // Send email notification
-      await sendSupportEmail(formData);
-
-      toast({
-        title: "Message sent successfully!",
-        description: "We'll get back to you within 24 hours at " + formData.email
-      });
+      // Try to send email notification
+      try {
+        await sendSupportEmail(formData);
+        
+        toast({
+          title: "Message sent successfully!",
+          description: "We'll get back to you within 24 hours at " + formData.email
+        });
+      } catch (emailError) {
+        console.error('Email sending failed, but ticket was saved:', emailError);
+        
+        // Show success message but mention email issue
+        toast({
+          title: "Support ticket created!",
+          description: "Your request has been saved. We'll contact you at " + formData.email + " within 24 hours."
+        });
+      }
 
       // Reset form
       setFormData({
@@ -82,12 +93,30 @@ const Help = () => {
         subject: '',
         message: ''
       });
+      
     } catch (error) {
       console.error('Error submitting form:', error);
+      
+      // Provide fallback option
       toast({
         variant: "destructive",
         title: "Failed to send message",
-        description: "Please try again or contact us directly at workwithdevnaam@gmail.com"
+        description: "Please try the email fallback button below or contact us directly at workwithdevnaam@gmail.com",
+        action: (
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => {
+              openEmailClient(formData);
+              toast({
+                title: "Email client opened",
+                description: "Please send the email manually"
+              });
+            }}
+          >
+            Open Email
+          </Button>
+        )
       });
     } finally {
       setIsSubmitting(false);
