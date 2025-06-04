@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { UseFormReturn } from 'react-hook-form';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -10,35 +9,35 @@ import { Trash2, Plus } from 'lucide-react';
 import { ListingFormData } from '@/types/listing';
 
 interface RentFeesFormProps {
-  form: UseFormReturn<ListingFormData>;
+  formData: ListingFormData;
+  updateFormData: (section: Partial<ListingFormData>) => void;
 }
 
-const RentFeesForm: React.FC<RentFeesFormProps> = ({ form }) => {
-  const { register, watch, setValue, formState: { errors } } = form;
-  const additionalFees = watch('additionalFees') || [];
+const RentFeesForm: React.FC<RentFeesFormProps> = ({ formData, updateFormData }) => {
+  const additionalFees = formData.additional_fees || [];
 
   const addFee = () => {
-    const currentFees = additionalFees || [];
-    setValue('additionalFees', [
-      ...currentFees,
-      { feeName: '', amount: 0, frequency: 'monthly' }
-    ]);
+    updateFormData({
+      additional_fees: [
+        ...additionalFees,
+        { fee_name: '', amount: 0, frequency: 'monthly' }
+      ]
+    });
   };
 
   const removeFee = (index: number) => {
-    const currentFees = additionalFees || [];
-    setValue('additionalFees', currentFees.filter((_, i) => i !== index));
+    const updatedFees = additionalFees.filter((_, i) => i !== index);
+    updateFormData({ additional_fees: updatedFees });
   };
 
   const updateFee = (index: number, field: string, value: string | number) => {
-    const currentFees = additionalFees || [];
-    const updatedFees = [...currentFees];
+    const updatedFees = [...additionalFees];
     if (field === 'amount') {
       updatedFees[index] = { ...updatedFees[index], [field]: Number(value) };
     } else {
       updatedFees[index] = { ...updatedFees[index], [field]: value };
     }
-    setValue('additionalFees', updatedFees);
+    updateFormData({ additional_fees: updatedFees });
   };
 
   return (
@@ -51,37 +50,25 @@ const RentFeesForm: React.FC<RentFeesFormProps> = ({ form }) => {
           {/* Monthly Rent */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="monthlyRent">Monthly Rent (₹) *</Label>
+              <Label htmlFor="monthly_rent">Monthly Rent (₹) *</Label>
               <Input
-                id="monthlyRent"
+                id="monthly_rent"
                 type="number"
-                {...register('monthlyRent', { 
-                  required: 'Monthly rent is required',
-                  min: { value: 1, message: 'Rent must be greater than 0' },
-                  valueAsNumber: true
-                })}
+                value={formData.monthly_rent || ''}
+                onChange={(e) => updateFormData({ monthly_rent: Number(e.target.value) || null })}
                 placeholder="Enter monthly rent"
               />
-              {errors.monthlyRent && (
-                <p className="text-red-500 text-sm mt-1">{errors.monthlyRent.message}</p>
-              )}
             </div>
 
             <div>
-              <Label htmlFor="securityDeposit">Security Deposit (₹) *</Label>
+              <Label htmlFor="security_deposit">Security Deposit (₹) *</Label>
               <Input
-                id="securityDeposit"
+                id="security_deposit"
                 type="number"
-                {...register('securityDeposit', { 
-                  required: 'Security deposit is required',
-                  min: { value: 0, message: 'Security deposit cannot be negative' },
-                  valueAsNumber: true
-                })}
+                value={formData.security_deposit || ''}
+                onChange={(e) => updateFormData({ security_deposit: Number(e.target.value) || null })}
                 placeholder="Enter security deposit"
               />
-              {errors.securityDeposit && (
-                <p className="text-red-500 text-sm mt-1">{errors.securityDeposit.message}</p>
-              )}
             </div>
           </div>
 
@@ -92,8 +79,8 @@ const RentFeesForm: React.FC<RentFeesFormProps> = ({ form }) => {
               <label className="flex items-center space-x-2">
                 <input
                   type="radio"
-                  {...register('brokerFree')}
-                  value="true"
+                  checked={formData.broker_free === true}
+                  onChange={() => updateFormData({ broker_free: true })}
                   className="w-4 h-4"
                 />
                 <span>No Broker Fee</span>
@@ -101,8 +88,8 @@ const RentFeesForm: React.FC<RentFeesFormProps> = ({ form }) => {
               <label className="flex items-center space-x-2">
                 <input
                   type="radio"
-                  {...register('brokerFree')}
-                  value="false"
+                  checked={formData.broker_free === false}
+                  onChange={() => updateFormData({ broker_free: false })}
                   className="w-4 h-4"
                 />
                 <span>Broker Fee Applicable</span>
@@ -126,8 +113,8 @@ const RentFeesForm: React.FC<RentFeesFormProps> = ({ form }) => {
                   <div>
                     <Label>Fee Name</Label>
                     <Input
-                      value={fee.feeName}
-                      onChange={(e) => updateFee(index, 'feeName', e.target.value)}
+                      value={fee.fee_name}
+                      onChange={(e) => updateFee(index, 'fee_name', e.target.value)}
                       placeholder="e.g., Maintenance"
                     />
                   </div>
@@ -136,7 +123,7 @@ const RentFeesForm: React.FC<RentFeesFormProps> = ({ form }) => {
                     <Input
                       type="number"
                       value={fee.amount || ''}
-                      onChange={(e) => updateFee(index, 'amount', parseInt(e.target.value) || 0)}
+                      onChange={(e) => updateFee(index, 'amount', Number(e.target.value) || 0)}
                       placeholder="Enter amount"
                     />
                   </div>
