@@ -20,6 +20,7 @@ export interface PropertyWithStats {
   reviews: number;
   created_at: string;
   updated_at: string;
+  photos?: string[];
 }
 
 export const fetchDashboardStats = async (landlordId: string): Promise<DashboardStats> => {
