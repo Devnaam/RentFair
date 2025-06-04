@@ -23,6 +23,17 @@ export interface PropertyWithStats {
   photos?: string[];
 }
 
+// Define valid statuses and ensure type safety
+const validStatuses = ['active', 'inactive', 'rented', 'pending_review', 'draft'] as const;
+type ValidStatus = typeof validStatuses[number];
+
+const getValidStatus = (status: any): ValidStatus => {
+  if (typeof status === 'string' && validStatuses.includes(status as ValidStatus)) {
+    return status as ValidStatus;
+  }
+  return 'draft';
+};
+
 export const fetchDashboardStats = async (landlordId: string): Promise<DashboardStats> => {
   try {
     // Fetch properties
@@ -77,7 +88,8 @@ export const fetchLandlordProperties = async (landlordId: string): Promise<Prope
         status,
         views_count,
         created_at,
-        updated_at
+        updated_at,
+        photos
       `)
       .eq('landlord_id', landlordId)
       .order('created_at', { ascending: false });
@@ -92,18 +104,6 @@ export const fetchLandlordProperties = async (landlordId: string): Promise<Prope
           .select('id', { count: 'exact' })
           .eq('listing_id', property.id);
 
-        // Define valid statuses and ensure type safety
-        const validStatuses = ['active', 'inactive', 'rented', 'pending_review', 'draft'] as const;
-        type ValidStatus = typeof validStatuses[number];
-        
-        // Safely handle status with proper type checking
-        const getValidStatus = (status: any): ValidStatus => {
-          if (typeof status === 'string' && validStatuses.includes(status as ValidStatus)) {
-            return status as ValidStatus;
-          }
-          return 'draft';
-        };
-
         return {
           id: property.id,
           title: property.title || 'Untitled Property',
@@ -115,7 +115,8 @@ export const fetchLandlordProperties = async (landlordId: string): Promise<Prope
           rating: 4.5, // Mock rating
           reviews: Math.floor(Math.random() * 20), // Mock reviews
           created_at: property.created_at,
-          updated_at: property.updated_at
+          updated_at: property.updated_at,
+          photos: property.photos || []
         };
       })
     );
@@ -171,6 +172,7 @@ export const fetchSampleProperty = async (): Promise<PropertyWithStats | null> =
         views_count,
         created_at,
         updated_at,
+        photos,
         landlord_id
       `)
       .eq('status', 'active')
@@ -185,16 +187,67 @@ export const fetchSampleProperty = async (): Promise<PropertyWithStats | null> =
       .select('id', { count: 'exact' })
       .eq('listing_id', property.id);
 
-    // Define valid statuses and ensure type safety
-    const validStatuses = ['active', 'inactive', 'rented', 'pending_review', 'draft'] as const;
-    type ValidStatus = typeof validStatuses[number];
-    
-    const getValidStatus = (status: any): ValidStatus => {
-      if (typeof status === 'string' && validStatuses.includes(status as ValidStatus)) {
-        return status as ValidStatus;
-      }
-      return 'draft';
+    return {
+      id: property.id,
+      title: property.title || 'Untitled Property',
+      location: `${property.street_address}, ${property.city}, ${property.state}`,
+      rent: property.monthly_rent || 0,
+      status: getValidStatus(property.status),
+      views: property.views_count || 0,
+      inquiries: inquiriesCount || 0,
+      rating: 4.5,
+      reviews: Math.floor(Math.random() * 20),
+      created_at: property.created_at,
+      updated_at: property.updated_at,
+      photos: property.photos || []
     };
+  } catch (error) {
+    console.error('Error fetching sample property:', error);
+    return null;
+  }
+};
+
+// New function to get a random property for rotation
+export const fetchRandomProperty = async (): Promise<PropertyWithStats | null> => {
+  try {
+    // Get count of active properties first
+    const { count } = await supabase
+      .from('property_listings')
+      .select('id', { count: 'exact' })
+      .eq('status', 'active');
+
+    if (!count || count === 0) return null;
+
+    // Get a random offset
+    const randomOffset = Math.floor(Math.random() * count);
+
+    const { data: property, error } = await supabase
+      .from('property_listings')
+      .select(`
+        id,
+        title,
+        street_address,
+        city,
+        state,
+        monthly_rent,
+        status,
+        views_count,
+        created_at,
+        updated_at,
+        photos,
+        landlord_id
+      `)
+      .eq('status', 'active')
+      .range(randomOffset, randomOffset)
+      .single();
+
+    if (error || !property) return null;
+
+    // Get inquiries count
+    const { count: inquiriesCount } = await supabase
+      .from('property_inquiries')
+      .select('id', { count: 'exact' })
+      .eq('listing_id', property.id);
 
     return {
       id: property.id,
@@ -207,10 +260,11 @@ export const fetchSampleProperty = async (): Promise<PropertyWithStats | null> =
       rating: 4.5,
       reviews: Math.floor(Math.random() * 20),
       created_at: property.created_at,
-      updated_at: property.updated_at
+      updated_at: property.updated_at,
+      photos: property.photos || []
     };
   } catch (error) {
-    console.error('Error fetching sample property:', error);
+    console.error('Error fetching random property:', error);
     return null;
   }
 };
