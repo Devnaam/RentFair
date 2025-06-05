@@ -13,7 +13,11 @@ import {
   User,
   Send,
   CheckCircle,
-  IndianRupee
+  IndianRupee,
+  MapPin,
+  Home,
+  Bath,
+  Eye
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -36,7 +40,7 @@ const Inquiries = () => {
     type: 'login'
   });
 
-  // Fetch inquiries for landlord's properties
+  // Fetch inquiries for landlord's properties with complete property details
   const { data: inquiries, isLoading } = useQuery({
     queryKey: ['inquiries', user?.id],
     queryFn: async () => {
@@ -47,16 +51,22 @@ const Inquiries = () => {
         .select(`
           *,
           property_listings!inner(
+            id,
             title,
             street_address,
             city,
+            state,
             monthly_rent,
             photos,
+            bedrooms,
+            bathrooms,
+            views_count,
             landlord_id
           ),
           profiles!property_inquiries_tenant_id_fkey(
             name,
-            email
+            email,
+            phone
           )
         `)
         .eq('property_listings.landlord_id', user.id)
@@ -71,8 +81,8 @@ const Inquiries = () => {
   // Mark inquiry as read mutation
   const markAsReadMutation = useMutation({
     mutationFn: async (inquiryId: string) => {
-      // This could be implemented later if we add a read status field
       console.log('Marking inquiry as read:', inquiryId);
+      // This could be implemented later if we add a read status field
     },
     onSuccess: () => {
       toast({
@@ -202,12 +212,15 @@ const Inquiries = () => {
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
-                            <h3 className="font-semibold">{inquiry.profiles?.name || 'Anonymous'}</h3>
+                            <h3 className="font-semibold">{inquiry.profiles?.name || 'Anonymous Tenant'}</h3>
                             <Badge variant="outline" className="text-xs">
                               New Inquiry
                             </Badge>
                           </div>
                           <p className="text-sm text-gray-600">{inquiry.profiles?.email}</p>
+                          {inquiry.profiles?.phone && (
+                            <p className="text-sm text-gray-600">Phone: {inquiry.profiles.phone}</p>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center text-sm text-gray-600">
@@ -217,52 +230,104 @@ const Inquiries = () => {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Property Info */}
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <div className="flex items-start gap-4">
-                      {inquiry.property_listings?.photos?.[0] && (
-                        <img
-                          src={inquiry.property_listings.photos[0]}
-                          alt="Property"
-                          className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
-                        />
-                      )}
-                      <div className="flex-1">
-                        <p className="font-medium">{inquiry.property_listings?.title}</p>
-                        <p className="text-sm text-gray-600">
-                          {inquiry.property_listings?.street_address}, {inquiry.property_listings?.city}
-                        </p>
-                        <div className="flex items-center mt-1">
-                          <IndianRupee className="w-4 h-4 text-green-600 mr-1" />
-                          <span className="text-sm font-medium text-green-600">
-                            ₹{inquiry.property_listings?.monthly_rent?.toLocaleString()}/month
-                          </span>
+                
+                <CardContent className="space-y-6">
+                  {/* Property Info Card */}
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-100">
+                    <h4 className="font-semibold text-blue-900 mb-4 flex items-center gap-2">
+                      <Home className="w-5 h-5" />
+                      Property Details
+                    </h4>
+                    
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* Property Image */}
+                      <div className="flex items-start gap-4">
+                        {inquiry.property_listings?.photos?.[0] && (
+                          <img
+                            src={inquiry.property_listings.photos[0]}
+                            alt="Property"
+                            className="w-24 h-24 rounded-lg object-cover flex-shrink-0"
+                          />
+                        )}
+                        <div className="flex-1">
+                          <h5 className="font-medium text-gray-900 mb-2">{inquiry.property_listings?.title}</h5>
+                          <div className="flex items-center text-sm text-gray-600 mb-2">
+                            <MapPin className="w-4 h-4 mr-1" />
+                            <span>{inquiry.property_listings?.street_address}, {inquiry.property_listings?.city}, {inquiry.property_listings?.state}</span>
+                          </div>
+                          <div className="flex items-center">
+                            <IndianRupee className="w-4 h-4 text-green-600 mr-1" />
+                            <span className="font-medium text-green-600">
+                              ₹{inquiry.property_listings?.monthly_rent?.toLocaleString()}/month
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Property Stats */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-white p-3 rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <Home className="w-4 h-4 text-blue-600" />
+                            <span className="text-sm text-gray-600">Bedrooms</span>
+                          </div>
+                          <p className="font-semibold">{inquiry.property_listings?.bedrooms || 'N/A'}</p>
+                        </div>
+                        <div className="bg-white p-3 rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <Bath className="w-4 h-4 text-blue-600" />
+                            <span className="text-sm text-gray-600">Bathrooms</span>
+                          </div>
+                          <p className="font-semibold">{inquiry.property_listings?.bathrooms || 'N/A'}</p>
+                        </div>
+                        <div className="bg-white p-3 rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <Eye className="w-4 h-4 text-blue-600" />
+                            <span className="text-sm text-gray-600">Total Views</span>
+                          </div>
+                          <p className="font-semibold">{inquiry.property_listings?.views_count || 0}</p>
+                        </div>
+                        <div className="bg-white p-3 rounded-lg">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => navigate(`/property/${inquiry.property_listings?.id}`)}
+                            className="w-full"
+                          >
+                            View Property
+                          </Button>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Message */}
+                  {/* Inquiry Message */}
                   <div>
-                    <h4 className="font-medium mb-2">Inquiry Message:</h4>
-                    <div className="bg-white p-4 rounded-lg border border-gray-200">
-                      <p className="text-gray-700">{inquiry.message}</p>
+                    <h4 className="font-semibold mb-3 flex items-center gap-2">
+                      <MessageSquare className="w-5 h-5 text-green-600" />
+                      Tenant's Message:
+                    </h4>
+                    <div className="bg-white p-4 rounded-lg border-l-4 border-green-500 shadow-sm">
+                      <p className="text-gray-700 leading-relaxed">{inquiry.message}</p>
                     </div>
                   </div>
 
                   {/* Reply Section */}
-                  <div className="border-t pt-4">
-                    <h4 className="font-medium mb-3">Reply to Tenant:</h4>
-                    <div className="space-y-3">
+                  <div className="border-t pt-6">
+                    <h4 className="font-semibold mb-4 flex items-center gap-2">
+                      <Send className="w-5 h-5 text-blue-600" />
+                      Reply to Tenant:
+                    </h4>
+                    <div className="space-y-4">
                       <Textarea
                         value={replyText[inquiry.id] || ''}
                         onChange={(e) => setReplyText({
                           ...replyText,
                           [inquiry.id]: e.target.value
                         })}
-                        placeholder="Type your reply here... (e.g., Thank you for your interest. The property is available for viewing this weekend. Please let me know your preferred time.)"
-                        rows={3}
+                        placeholder="Hi there! Thank you for your interest in my property. I'd be happy to help you with any questions..."
+                        rows={4}
+                        className="resize-none"
                       />
                       <div className="flex justify-between items-center">
                         <Button
@@ -277,6 +342,7 @@ const Inquiries = () => {
                           onClick={() => handleReply(inquiry.id)}
                           size="sm"
                           disabled={!replyText[inquiry.id]?.trim()}
+                          className="bg-blue-600 hover:bg-blue-700"
                         >
                           <Send className="w-4 h-4 mr-2" />
                           Send Reply

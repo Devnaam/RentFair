@@ -1,34 +1,34 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import Header from '@/components/Header';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { 
-  ArrowLeft, 
-  Edit, 
-  Save, 
-  X, 
-  MapPin, 
-  IndianRupee,
-  BedDouble,
-  Bath,
-  Home,
-  Calendar,
-  Send,
-  MessageSquare,
-  ChevronLeft,
-  ChevronRight
-} from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import Header from '@/components/Header';
 import AuthModal from '@/components/AuthModal';
-import PropertyImageDisplay from '@/components/PropertyImageDisplay';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
+import { Separator } from '@/components/ui/separator';
+import {
+  ArrowLeft,
+  MapPin,
+  IndianRupee,
+  Home,
+  Bath,
+  Maximize,
+  Calendar,
+  Shield,
+  Send,
+  ChevronLeft,
+  ChevronRight,
+  Play,
+  User,
+  MessageSquare
+} from 'lucide-react';
+import { incrementPropertyViews } from '@/services/dashboardService';
 
 const PropertyDetails = () => {
   const { id } = useParams();
@@ -37,11 +37,6 @@ const PropertyDetails = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  const [isEditing, setIsEditing] = useState(false);
-  const [editData, setEditData] = useState<any>({});
-  const [inquiryMessage, setInquiryMessage] = useState('');
-  const [showInquiryForm, setShowInquiryForm] = useState(false);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [authModal, setAuthModal] = useState<{
     isOpen: boolean;
     type: 'login' | 'signup';
@@ -50,143 +45,9 @@ const PropertyDetails = () => {
     type: 'login'
   });
 
-  // Fetch property details
-  const { data: property, isLoading, error } = useQuery({
-    queryKey: ['property', id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('property_listings')
-        .select('*')
-        .eq('id', id)
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!id
-  });
-
-  // Submit inquiry mutation
-  const submitInquiryMutation = useMutation({
-    mutationFn: async (message: string) => {
-      if (!user) throw new Error('User must be logged in');
-      
-      const { error } = await supabase
-        .from('property_inquiries')
-        .insert({
-          listing_id: id!,
-          tenant_id: user.id,
-          message: message
-        });
-      
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast({
-        title: "Inquiry sent successfully!",
-        description: "The landlord will receive your inquiry and get back to you soon."
-      });
-      setInquiryMessage('');
-      setShowInquiryForm(false);
-    },
-    onError: (error: any) => {
-      toast({
-        variant: "destructive",
-        title: "Failed to send inquiry",
-        description: error.message
-      });
-    }
-  });
-
-  // Update property mutation (exclude title from updates)
-  const updatePropertyMutation = useMutation({
-    mutationFn: async (updatedData: any) => {
-      // Remove title from the update data since it's auto-generated
-      const { title, ...dataToUpdate } = updatedData;
-      
-      const { error } = await supabase
-        .from('property_listings')
-        .update(dataToUpdate)
-        .eq('id', id);
-      
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast({
-        title: "Property updated successfully",
-        description: "Your property details have been saved."
-      });
-      setIsEditing(false);
-      queryClient.invalidateQueries({ queryKey: ['property', id] });
-      queryClient.invalidateQueries({ queryKey: ['landlord-properties'] });
-    },
-    onError: (error: any) => {
-      toast({
-        variant: "destructive",
-        title: "Failed to update property",
-        description: error.message
-      });
-    }
-  });
-
-  // Publish property mutation
-  const publishPropertyMutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase
-        .from('property_listings')
-        .update({ status: 'active' })
-        .eq('id', id);
-      
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast({
-        title: "Property published successfully",
-        description: "Your property is now live and visible to tenants."
-      });
-      queryClient.invalidateQueries({ queryKey: ['property', id] });
-      queryClient.invalidateQueries({ queryKey: ['landlord-properties'] });
-    },
-    onError: (error: any) => {
-      toast({
-        variant: "destructive",
-        title: "Failed to publish property",
-        description: error.message
-      });
-    }
-  });
-
-  // Delete property mutation
-  const deletePropertyMutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase
-        .from('property_listings')
-        .delete()
-        .eq('id', id);
-      
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast({
-        title: "Property deleted successfully",
-        description: "Your property has been removed from the platform."
-      });
-      navigate('/dashboard');
-    },
-    onError: (error: any) => {
-      toast({
-        variant: "destructive",
-        title: "Failed to delete property",
-        description: error.message
-      });
-    }
-  });
-
-  useEffect(() => {
-    if (property) {
-      setEditData(property);
-    }
-  }, [property]);
+  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+  const [inquiryMessage, setInquiryMessage] = useState('');
+  const [showInquiryForm, setShowInquiryForm] = useState(false);
 
   const handleAuthClick = (type: 'login' | 'signup') => {
     setAuthModal({ isOpen: true, type });
@@ -196,49 +57,106 @@ const PropertyDetails = () => {
     setAuthModal({ ...authModal, isOpen: false });
   };
 
-  const handleSave = () => {
-    updatePropertyMutation.mutate(editData);
-  };
+  // Fetch property details
+  const { data: property, isLoading, error } = useQuery({
+    queryKey: ['property', id],
+    queryFn: async () => {
+      if (!id) throw new Error('Property ID is required');
+      
+      const { data, error } = await supabase
+        .from('property_listings')
+        .select(`
+          *,
+          profiles!property_listings_landlord_id_fkey(
+            name,
+            email,
+            phone
+          )
+        `)
+        .eq('id', id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id
+  });
 
-  const handlePublish = () => {
-    publishPropertyMutation.mutate();
-  };
-
-  const handleDelete = () => {
-    if (window.confirm('Are you sure you want to delete this property? This action cannot be undone.')) {
-      deletePropertyMutation.mutate();
+  // Track property view when page loads
+  useEffect(() => {
+    if (id && user && property?.landlord_id !== user.id) {
+      // Only track views if user is not the landlord
+      incrementPropertyViews(id);
     }
-  };
+  }, [id, user, property?.landlord_id]);
+
+  // Send inquiry mutation
+  const sendInquiryMutation = useMutation({
+    mutationFn: async ({ message }: { message: string }) => {
+      if (!user || !id) throw new Error('Authentication required');
+      
+      const { error } = await supabase
+        .from('property_inquiries')
+        .insert({
+          listing_id: id,
+          tenant_id: user.id,
+          message: message.trim()
+        });
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Inquiry sent successfully",
+        description: "Your inquiry has been sent to the landlord. They will get back to you soon!"
+      });
+      setInquiryMessage('');
+      setShowInquiryForm(false);
+      queryClient.invalidateQueries({ queryKey: ['inquiries'] });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Failed to send inquiry",
+        description: error.message || "Please try again"
+      });
+    }
+  });
 
   const handleSendInquiry = () => {
     if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Authentication required",
+        description: "Please log in to send an inquiry"
+      });
       handleAuthClick('login');
       return;
     }
-    
+
     if (!inquiryMessage.trim()) {
       toast({
         variant: "destructive",
-        title: "Empty message",
-        description: "Please enter your inquiry message."
+        title: "Message required",
+        description: "Please enter your inquiry message"
       });
       return;
     }
-    
-    submitInquiryMutation.mutate(inquiryMessage);
+
+    sendInquiryMutation.mutate({ message: inquiryMessage });
   };
 
-  const nextImage = () => {
-    if (property?.photos && property.photos.length > 1) {
-      setCurrentImageIndex((prev) => 
+  const nextPhoto = () => {
+    if (property?.photos && property.photos.length > 0) {
+      setCurrentPhotoIndex((prev) => 
         prev === property.photos.length - 1 ? 0 : prev + 1
       );
     }
   };
 
-  const prevImage = () => {
-    if (property?.photos && property.photos.length > 1) {
-      setCurrentImageIndex((prev) => 
+  const prevPhoto = () => {
+    if (property?.photos && property.photos.length > 0) {
+      setCurrentPhotoIndex((prev) => 
         prev === 0 ? property.photos.length - 1 : prev - 1
       );
     }
@@ -249,12 +167,13 @@ const PropertyDetails = () => {
       <div className="min-h-screen bg-gray-50">
         <Header onAuthClick={handleAuthClick} />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
-            <div className="h-64 bg-gray-200 rounded mb-4"></div>
-            <div className="space-y-3">
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+          <div className="animate-pulse space-y-6">
+            <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+            <div className="h-64 bg-gray-200 rounded"></div>
+            <div className="space-y-4">
               <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+              <div className="h-4 bg-gray-200 rounded w-2/3"></div>
             </div>
           </div>
         </div>
@@ -266,15 +185,15 @@ const PropertyDetails = () => {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header onAuthClick={handleAuthClick} />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Card>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+          <Card className="max-w-md mx-auto">
             <CardContent className="p-8 text-center">
               <h2 className="text-2xl font-bold mb-4">Property Not Found</h2>
               <p className="text-gray-600 mb-6">
                 The property you're looking for doesn't exist or has been removed.
               </p>
-              <Button onClick={() => navigate('/dashboard')}>
-                Back to Dashboard
+              <Button onClick={() => navigate('/')}>
+                Back to Home
               </Button>
             </CardContent>
           </Card>
@@ -283,8 +202,9 @@ const PropertyDetails = () => {
     );
   }
 
-  const isOwner = user?.id === property?.landlord_id;
-  const isTenant = user && !isOwner;
+  const isOwner = user && user.id === property.landlord_id;
+  const photos = property.photos || [];
+  const hasMedia = photos.length > 0 || property.video_tour_url;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -292,126 +212,83 @@ const PropertyDetails = () => {
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/dashboard')}
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Dashboard
-            </Button>
-            <h1 className="text-3xl font-bold text-gray-900">Property Details</h1>
-          </div>
-          
-          {isOwner && (
-            <div className="flex gap-2">
-              {isEditing ? (
-                <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsEditing(false)}
-                  >
-                    <X className="w-4 h-4 mr-2" />
-                    Cancel
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={handleSave}
-                    disabled={updatePropertyMutation.isPending}
-                  >
-                    <Save className="w-4 h-4 mr-2" />
-                    Save Changes
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsEditing(true)}
-                  >
-                    <Edit className="w-4 h-4 mr-2" />
-                    Edit
-                  </Button>
-                  {property.status === 'draft' && (
-                    <Button
-                      size="sm"
-                      onClick={handlePublish}
-                      disabled={publishPropertyMutation.isPending}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      <Send className="w-4 h-4 mr-2" />
-                      Publish
-                    </Button>
-                  )}
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={handleDelete}
-                    disabled={deletePropertyMutation.isPending}
-                  >
-                    Delete
-                  </Button>
-                </>
-              )}
-            </div>
-          )}
+        <div className="flex items-center gap-4 mb-6">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate(-1)}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
         </div>
 
-        {/* Property Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Property Images */}
-            {property?.photos && property.photos.length > 0 && (
+            {/* Photos and Video Section */}
+            {hasMedia && (
               <Card>
                 <CardContent className="p-0">
-                  <div className="relative">
-                    <img
-                      src={property.photos[currentImageIndex]}
-                      alt={`${property.title} - Photo ${currentImageIndex + 1}`}
-                      className="w-full h-96 object-cover rounded-t-lg"
-                    />
-                    
-                    {property.photos.length > 1 && (
-                      <>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white"
-                          onClick={prevImage}
-                        >
-                          <ChevronLeft className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white"
-                          onClick={nextImage}
-                        >
-                          <ChevronRight className="w-4 h-4" />
-                        </Button>
-                        
-                        <div className="absolute bottom-4 right-4 bg-black/50 text-white text-sm px-3 py-1 rounded">
-                          {currentImageIndex + 1} / {property.photos.length}
-                        </div>
-                      </>
-                    )}
-                  </div>
+                  {photos.length > 0 && (
+                    <div className="relative">
+                      <img
+                        src={photos[currentPhotoIndex]}
+                        alt={`Property photo ${currentPhotoIndex + 1}`}
+                        className="w-full h-96 object-cover rounded-t-lg"
+                      />
+                      {photos.length > 1 && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white"
+                            onClick={prevPhoto}
+                          >
+                            <ChevronLeft className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white"
+                            onClick={nextPhoto}
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </Button>
+                          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
+                            {currentPhotoIndex + 1} / {photos.length}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
                   
-                  {/* Thumbnail strip */}
-                  {property.photos.length > 1 && (
-                    <div className="p-4">
+                  {property.video_tour_url && (
+                    <div className="p-4 border-t">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Play className="w-5 h-5 text-primary" />
+                        <h3 className="font-semibold">Video Tour</h3>
+                      </div>
+                      <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden">
+                        <iframe
+                          src={property.video_tour_url}
+                          className="w-full h-full"
+                          allowFullScreen
+                          title="Property Video Tour"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  
+                  {photos.length > 1 && (
+                    <div className="p-4 border-t">
                       <div className="flex gap-2 overflow-x-auto">
-                        {property.photos.map((photo, index) => (
+                        {photos.map((photo, index) => (
                           <button
                             key={index}
-                            onClick={() => setCurrentImageIndex(index)}
-                            className={`flex-shrink-0 w-20 h-16 rounded border-2 overflow-hidden ${
-                              index === currentImageIndex ? 'border-primary' : 'border-gray-200'
+                            onClick={() => setCurrentPhotoIndex(index)}
+                            className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 ${
+                              index === currentPhotoIndex ? 'border-primary' : 'border-gray-200'
                             }`}
                           >
                             <img
@@ -428,256 +305,231 @@ const PropertyDetails = () => {
               </Card>
             )}
 
-            {/* Video Tour */}
-            {property?.video_tour_url && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Video Tour</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="aspect-video">
-                    <iframe
-                      src={property.video_tour_url.replace('watch?v=', 'embed/')}
-                      className="w-full h-full rounded-lg"
-                      allowFullScreen
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Property Details Card */}
+            {/* Property Details */}
             <Card>
               <CardHeader>
-                <div className="flex items-start justify-between">
+                <div className="flex justify-between items-start">
                   <div>
-                    <CardTitle className="text-xl">{property?.title}</CardTitle>
-                    <div className="flex items-center text-gray-600 mt-2">
+                    <CardTitle className="text-2xl mb-2">{property.title}</CardTitle>
+                    <div className="flex items-center text-gray-600 mb-2">
                       <MapPin className="w-4 h-4 mr-1" />
-                      <span>{property?.street_address}, {property?.city}, {property?.state} {property?.pincode}</span>
+                      <span>{property.street_address}, {property.city}, {property.state} - {property.pincode}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <IndianRupee className="w-5 h-5 text-green-600 mr-1" />
+                      <span className="text-2xl font-bold text-green-600">
+                        ₹{property.monthly_rent?.toLocaleString()}/month
+                      </span>
                     </div>
                   </div>
-                  <Badge variant={property?.status === 'active' ? 'default' : 'secondary'}>
-                    {property?.status}
+                  <Badge variant={property.status === 'active' ? 'default' : 'secondary'}>
+                    {property.status}
                   </Badge>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Property Details */}
+              <CardContent className="space-y-6">
+                {/* Property Features */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="flex items-center">
-                    <BedDouble className="w-5 h-5 text-gray-600 mr-2" />
-                    <div>
-                      <p className="font-semibold">{property?.bedrooms || 'N/A'}</p>
-                      <p className="text-sm text-gray-600">Bedrooms</p>
+                  {property.bedrooms && (
+                    <div className="flex items-center gap-2">
+                      <Home className="w-5 h-5 text-primary" />
+                      <span>{property.bedrooms} Bedrooms</span>
                     </div>
-                  </div>
-                  <div className="flex items-center">
-                    <Bath className="w-5 h-5 text-gray-600 mr-2" />
-                    <div>
-                      <p className="font-semibold">{property?.bathrooms || 'N/A'}</p>
-                      <p className="text-sm text-gray-600">Bathrooms</p>
+                  )}
+                  {property.bathrooms && (
+                    <div className="flex items-center gap-2">
+                      <Bath className="w-5 h-5 text-primary" />
+                      <span>{property.bathrooms} Bathrooms</span>
                     </div>
-                  </div>
-                  <div className="flex items-center">
-                    <Home className="w-5 h-5 text-gray-600 mr-2" />
-                    <div>
-                      <p className="font-semibold">{property?.size_sqft || 'N/A'}</p>
-                      <p className="text-sm text-gray-600">Sq ft</p>
+                  )}
+                  {property.size_sqft && (
+                    <div className="flex items-center gap-2">
+                      <Maximize className="w-5 h-5 text-primary" />
+                      <span>{property.size_sqft} sq ft</span>
                     </div>
-                  </div>
-                  <div className="flex items-center">
-                    <Calendar className="w-5 h-5 text-gray-600 mr-2" />
-                    <div>
-                      <p className="font-semibold">{new Date(property?.availability_date).toLocaleDateString()}</p>
-                      <p className="text-sm text-gray-600">Available</p>
-                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-primary" />
+                    <span>Available {new Date(property.availability_date).toLocaleDateString()}</span>
                   </div>
                 </div>
 
-                {/* Description */}
+                <Separator />
+
+                {/* Rent Details */}
                 <div>
-                  <Label className="text-base font-semibold">Description</Label>
-                  {isEditing ? (
-                    <Textarea
-                      value={editData.house_rules || ''}
-                      onChange={(e) => setEditData({...editData, house_rules: e.target.value})}
-                      placeholder="Property description and house rules"
-                      className="mt-2"
-                      rows={4}
-                    />
-                  ) : (
-                    <p className="mt-2 text-gray-700">{property?.house_rules || 'No description available'}</p>
-                  )}
+                  <h3 className="font-semibold mb-3">Rent & Fees</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex justify-between">
+                      <span>Monthly Rent:</span>
+                      <span className="font-semibold">₹{property.monthly_rent?.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Security Deposit:</span>
+                      <span className="font-semibold">₹{property.security_deposit?.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Broker Fee:</span>
+                      <span className="font-semibold">{property.broker_free ? 'No' : 'Yes'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Minimum Stay:</span>
+                      <span className="font-semibold">{property.minimum_stay_months} months</span>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Amenities */}
-                {property?.amenities && property.amenities.length > 0 && (
-                  <div>
-                    <Label className="text-base font-semibold">Amenities</Label>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {property.amenities.map((amenity: string, index: number) => (
-                        <Badge key={index} variant="outline">{amenity}</Badge>
-                      ))}
+                {property.amenities && property.amenities.length > 0 && (
+                  <>
+                    <Separator />
+                    <div>
+                      <h3 className="font-semibold mb-3">Amenities</h3>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        {property.amenities.map((amenity, index) => (
+                          <div key={index} className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-primary rounded-full"></div>
+                            <span className="text-sm">{amenity}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  </>
                 )}
 
                 {/* Utilities */}
-                {property?.utilities_included && property.utilities_included.length > 0 && (
-                  <div>
-                    <Label className="text-base font-semibold">Utilities Included</Label>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {property.utilities_included.map((utility: string, index: number) => (
-                        <Badge key={index} variant="secondary">{utility}</Badge>
-                      ))}
+                {property.utilities_included && property.utilities_included.length > 0 && (
+                  <>
+                    <Separator />
+                    <div>
+                      <h3 className="font-semibold mb-3">Utilities Included</h3>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        {property.utilities_included.map((utility, index) => (
+                          <div key={index} className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <span className="text-sm">{utility}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  </>
+                )}
+
+                {/* House Rules */}
+                {property.house_rules && (
+                  <>
+                    <Separator />
+                    <div>
+                      <h3 className="font-semibold mb-3">House Rules</h3>
+                      <p className="text-gray-700">{property.house_rules}</p>
+                    </div>
+                  </>
                 )}
               </CardContent>
             </Card>
-
-            {/* Inquiry Section for Tenants */}
-            {isTenant && !showInquiryForm && (
-              <Card>
-                <CardContent className="p-6 text-center">
-                  <MessageSquare className="w-12 h-12 text-primary mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Interested in this property?</h3>
-                  <p className="text-gray-600 mb-4">
-                    Send an inquiry to the landlord to get more information or schedule a viewing.
-                  </p>
-                  <Button onClick={() => setShowInquiryForm(true)}>
-                    <Send className="w-4 h-4 mr-2" />
-                    Send Inquiry
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Inquiry Form */}
-            {showInquiryForm && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Send Inquiry</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label htmlFor="inquiry-message">Your Message</Label>
-                    <Textarea
-                      id="inquiry-message"
-                      value={inquiryMessage}
-                      onChange={(e) => setInquiryMessage(e.target.value)}
-                      placeholder="Hi, I'm interested in this property. Could you please provide more details about..."
-                      rows={4}
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={handleSendInquiry}
-                      disabled={submitInquiryMutation.isPending}
-                    >
-                      <Send className="w-4 h-4 mr-2" />
-                      {submitInquiryMutation.isPending ? 'Sending...' : 'Send Inquiry'}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowInquiryForm(false)}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Login prompt for non-authenticated users */}
-            {!user && (
-              <Card>
-                <CardContent className="p-6 text-center">
-                  <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Want to inquire about this property?</h3>
-                  <p className="text-gray-600 mb-4">
-                    Please log in to send inquiries to property owners.
-                  </p>
-                  <Button onClick={() => handleAuthClick('login')}>
-                    Login to Send Inquiry
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
           </div>
 
           {/* Sidebar */}
           <div className="space-y-6">
+            {/* Landlord Info */}
             <Card>
               <CardHeader>
-                <CardTitle>Pricing</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="w-5 h-5" />
+                  Landlord Information
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center">
-                  <IndianRupee className="w-5 h-5 text-primary mr-2" />
+              <CardContent>
+                <div className="space-y-3">
                   <div>
-                    {isEditing ? (
-                      <Input
-                        type="number"
-                        value={editData.monthly_rent || ''}
-                        onChange={(e) => setEditData({...editData, monthly_rent: parseInt(e.target.value)})}
-                        className="text-2xl font-bold"
-                      />
-                    ) : (
-                      <p className="text-2xl font-bold">₹{property?.monthly_rent?.toLocaleString()}</p>
-                    )}
-                    <p className="text-sm text-gray-600">per month</p>
+                    <span className="font-semibold">Name:</span>
+                    <p>{property.profiles?.name || 'Not provided'}</p>
                   </div>
-                </div>
-                
-                <div className="border-t pt-4">
-                  <div className="flex justify-between">
-                    <span>Security Deposit:</span>
-                    {isEditing ? (
-                      <Input
-                        type="number"
-                        value={editData.security_deposit || ''}
-                        onChange={(e) => setEditData({...editData, security_deposit: parseInt(e.target.value)})}
-                        className="w-32"
-                      />
-                    ) : (
-                      <span>₹{property?.security_deposit?.toLocaleString()}</span>
-                    )}
+                  <div>
+                    <span className="font-semibold">Email:</span>
+                    <p>{property.profiles?.email || 'Not provided'}</p>
                   </div>
-                  <div className="flex justify-between mt-2">
-                    <span>Broker Fee:</span>
-                    <span>{property?.broker_free ? 'No' : 'Yes'}</span>
-                  </div>
+                  {property.profiles?.phone && (
+                    <div>
+                      <span className="font-semibold">Phone:</span>
+                      <p>{property.profiles.phone}</p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Property Stats</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span>Views:</span>
-                    <span className="font-semibold">{property?.views_count || 0}</span>
+            {/* Contact/Inquiry Section */}
+            {!isOwner && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5" />
+                    Interested in this property?
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {!showInquiryForm ? (
+                    <Button 
+                      className="w-full" 
+                      onClick={() => setShowInquiryForm(true)}
+                    >
+                      Send Inquiry
+                    </Button>
+                  ) : (
+                    <div className="space-y-4">
+                      <Textarea
+                        value={inquiryMessage}
+                        onChange={(e) => setInquiryMessage(e.target.value)}
+                        placeholder="Hi, I'm interested in this property. Could you provide more details about..."
+                        rows={4}
+                      />
+                      <div className="flex gap-2">
+                        <Button 
+                          onClick={handleSendInquiry}
+                          disabled={sendInquiryMutation.isPending || !inquiryMessage.trim()}
+                          className="flex-1"
+                        >
+                          <Send className="w-4 h-4 mr-2" />
+                          {sendInquiryMutation.isPending ? 'Sending...' : 'Send'}
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          onClick={() => {
+                            setShowInquiryForm(false);
+                            setInquiryMessage('');
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Shield className="w-4 h-4" />
+                    <span>Your inquiry will be sent securely to the landlord</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Property Type:</span>
-                    <span className="font-semibold">{property?.property_type?.replace('_', ' ')}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Furnishing:</span>
-                    <span className="font-semibold">{property?.furnishing_status}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Listed:</span>
-                    <span className="font-semibold">{new Date(property?.created_at).toLocaleDateString()}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
+
+            {isOwner && (
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <p className="text-sm text-gray-600 mb-3">
+                    This is your property listing
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => navigate('/dashboard')}
+                    className="w-full"
+                  >
+                    Go to Dashboard
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>

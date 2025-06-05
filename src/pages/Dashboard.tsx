@@ -16,7 +16,9 @@ import {
   TrendingUp,
   Users,
   IndianRupee,
-  Send
+  Send,
+  Crown,
+  UserCheck
 } from 'lucide-react';
 import AuthModal from '@/components/AuthModal';
 import { useAuth } from '@/contexts/AuthContext';
@@ -43,6 +45,24 @@ const Dashboard = () => {
     type: 'login'
   });
 
+  // Fetch user profile to get role
+  const { data: userProfile } = useQuery({
+    queryKey: ['user-profile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('role, name')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id
+  });
+
   const handleAuthClick = (type: 'login' | 'signup') => {
     setAuthModal({ isOpen: true, type });
   };
@@ -51,18 +71,21 @@ const Dashboard = () => {
     setAuthModal({ ...authModal, isOpen: false });
   };
 
+  // Check if user is landlord
+  const isLandlord = userProfile?.role === 'landlord';
+
   // Fetch dashboard statistics
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['dashboard-stats', user?.id],
     queryFn: () => fetchDashboardStats(user!.id),
-    enabled: !!user?.id
+    enabled: !!user?.id && isLandlord
   });
 
   // Fetch landlord properties
   const { data: properties, isLoading: propertiesLoading } = useQuery({
     queryKey: ['landlord-properties', user?.id],
     queryFn: () => fetchLandlordProperties(user!.id),
-    enabled: !!user?.id
+    enabled: !!user?.id && isLandlord
   });
 
   // Delete property mutation
@@ -132,7 +155,7 @@ const Dashboard = () => {
             <CardContent className="p-8 text-center">
               <h2 className="text-2xl font-bold mb-4">Access Required</h2>
               <p className="text-gray-600 mb-6">
-                Please log in to access your landlord dashboard
+                Please log in to access your dashboard
               </p>
               <Button onClick={() => handleAuthClick('login')} className="w-full">
                 Login to Dashboard
@@ -149,6 +172,34 @@ const Dashboard = () => {
     );
   }
 
+  // If user is not a landlord, show tenant message
+  if (userProfile && !isLandlord) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header onAuthClick={handleAuthClick} />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+          <Card className="max-w-md mx-auto">
+            <CardContent className="p-8 text-center">
+              <UserCheck className="w-16 h-16 text-blue-600 mx-auto mb-4" />
+              <h2 className="text-2xl font-bold mb-4">Tenant Account</h2>
+              <p className="text-gray-600 mb-6">
+                You're logged in as a tenant. This dashboard is only available for landlords who want to list their properties.
+              </p>
+              <div className="space-y-3">
+                <Button onClick={() => navigate('/find-room')} className="w-full">
+                  Find Properties
+                </Button>
+                <Button variant="outline" onClick={() => navigate('/')} className="w-full">
+                  Back to Home
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header onAuthClick={handleAuthClick} />
@@ -157,8 +208,14 @@ const Dashboard = () => {
         {/* Dashboard Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Landlord Dashboard</h1>
-            <p className="text-gray-600">Manage your properties and connect with tenants</p>
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-3xl font-bold text-gray-900">Landlord Dashboard</h1>
+              <Badge variant="default" className="bg-yellow-100 text-yellow-800 border-yellow-200">
+                <Crown className="w-4 h-4 mr-1" />
+                Landlord Account
+              </Badge>
+            </div>
+            <p className="text-gray-600">Welcome back, {userProfile?.name || user.email}! Manage your properties and connect with tenants</p>
           </div>
           <Button onClick={() => navigate('/list-property')}>
             <Plus className="w-4 h-4 mr-2" />
@@ -372,7 +429,7 @@ const Dashboard = () => {
 
       <AuthModal
         isOpen={authModal.isOpen}
-        onClose={closeAuthModal}
+        onClose={closeModal}
         initialType={authModal.type}
       />
     </div>

@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 export interface DashboardStats {
@@ -153,6 +154,20 @@ export const updatePropertyStatus = async (propertyId: string, status: string): 
   } catch (error) {
     console.error('Error updating property status:', error);
     throw error;
+  }
+};
+
+// Function to increment property views
+export const incrementPropertyViews = async (propertyId: string): Promise<void> => {
+  try {
+    const { error } = await supabase.rpc('increment_property_views', {
+      property_id: propertyId
+    });
+
+    if (error) throw error;
+  } catch (error) {
+    console.error('Error incrementing property views:', error);
+    // Don't throw error for view tracking failures
   }
 };
 
