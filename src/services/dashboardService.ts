@@ -143,7 +143,7 @@ export const deleteProperty = async (propertyId: string): Promise<void> => {
   }
 };
 
-export const updatePropertyStatus = async (propertyId: string, status: string): Promise<void> => {
+export const updatePropertyStatus = async (propertyId: string, status: ValidStatus): Promise<void> => {
   try {
     const { error } = await supabase
       .from('property_listings')

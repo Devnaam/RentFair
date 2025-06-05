@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import Header from '@/components/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -429,7 +430,7 @@ const Dashboard = () => {
 
       <AuthModal
         isOpen={authModal.isOpen}
-        onClose={closeModal}
+        onClose={closeAuthModal}
         initialType={authModal.type}
       />
     </div>

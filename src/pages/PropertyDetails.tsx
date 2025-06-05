@@ -65,14 +65,7 @@ const PropertyDetails = () => {
       
       const { data, error } = await supabase
         .from('property_listings')
-        .select(`
-          *,
-          profiles!property_listings_landlord_id_fkey(
-            name,
-            email,
-            phone
-          )
-        `)
+        .select('*')
         .eq('id', id)
         .single();
       
@@ -80,6 +73,24 @@ const PropertyDetails = () => {
       return data;
     },
     enabled: !!id
+  });
+
+  // Fetch landlord profile separately
+  const { data: landlordProfile } = useQuery({
+    queryKey: ['landlord-profile', property?.landlord_id],
+    queryFn: async () => {
+      if (!property?.landlord_id) return null;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('name, email, phone')
+        .eq('id', property.landlord_id)
+        .single();
+      
+      if (error) return null;
+      return data;
+    },
+    enabled: !!property?.landlord_id
   });
 
   // Track property view when page loads
@@ -443,16 +454,16 @@ const PropertyDetails = () => {
                 <div className="space-y-3">
                   <div>
                     <span className="font-semibold">Name:</span>
-                    <p>{property.profiles?.name || 'Not provided'}</p>
+                    <p>{landlordProfile?.name || 'Not provided'}</p>
                   </div>
                   <div>
                     <span className="font-semibold">Email:</span>
-                    <p>{property.profiles?.email || 'Not provided'}</p>
+                    <p>{landlordProfile?.email || 'Not provided'}</p>
                   </div>
-                  {property.profiles?.phone && (
+                  {landlordProfile?.phone && (
                     <div>
                       <span className="font-semibold">Phone:</span>
-                      <p>{property.profiles.phone}</p>
+                      <p>{landlordProfile.phone}</p>
                     </div>
                   )}
                 </div>
