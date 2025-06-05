@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -20,12 +19,16 @@ import {
   Bath,
   Home,
   Calendar,
-  Send
+  Send,
+  MessageSquare,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import AuthModal from '@/components/AuthModal';
+import PropertyImageDisplay from '@/components/PropertyImageDisplay';
 
 const PropertyDetails = () => {
   const { id } = useParams();
@@ -36,6 +39,9 @@ const PropertyDetails = () => {
   
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<any>({});
+  const [inquiryMessage, setInquiryMessage] = useState('');
+  const [showInquiryForm, setShowInquiryForm] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [authModal, setAuthModal] = useState<{
     isOpen: boolean;
     type: 'login' | 'signup';
@@ -58,6 +64,38 @@ const PropertyDetails = () => {
       return data;
     },
     enabled: !!id
+  });
+
+  // Submit inquiry mutation
+  const submitInquiryMutation = useMutation({
+    mutationFn: async (message: string) => {
+      if (!user) throw new Error('User must be logged in');
+      
+      const { error } = await supabase
+        .from('property_inquiries')
+        .insert({
+          listing_id: id!,
+          tenant_id: user.id,
+          message: message
+        });
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Inquiry sent successfully!",
+        description: "The landlord will receive your inquiry and get back to you soon."
+      });
+      setInquiryMessage('');
+      setShowInquiryForm(false);
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Failed to send inquiry",
+        description: error.message
+      });
+    }
   });
 
   // Update property mutation (exclude title from updates)
@@ -172,6 +210,40 @@ const PropertyDetails = () => {
     }
   };
 
+  const handleSendInquiry = () => {
+    if (!user) {
+      handleAuthClick('login');
+      return;
+    }
+    
+    if (!inquiryMessage.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Empty message",
+        description: "Please enter your inquiry message."
+      });
+      return;
+    }
+    
+    submitInquiryMutation.mutate(inquiryMessage);
+  };
+
+  const nextImage = () => {
+    if (property?.photos && property.photos.length > 1) {
+      setCurrentImageIndex((prev) => 
+        prev === property.photos.length - 1 ? 0 : prev + 1
+      );
+    }
+  };
+
+  const prevImage = () => {
+    if (property?.photos && property.photos.length > 1) {
+      setCurrentImageIndex((prev) => 
+        prev === 0 ? property.photos.length - 1 : prev - 1
+      );
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -211,6 +283,9 @@ const PropertyDetails = () => {
     );
   }
 
+  const isOwner = user?.id === property?.landlord_id;
+  const isTenant = user && !isOwner;
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header onAuthClick={handleAuthClick} />
@@ -230,7 +305,7 @@ const PropertyDetails = () => {
             <h1 className="text-3xl font-bold text-gray-900">Property Details</h1>
           </div>
           
-          {user?.id === property.landlord_id && (
+          {isOwner && (
             <div className="flex gap-2">
               {isEditing ? (
                 <>
@@ -290,35 +365,100 @@ const PropertyDetails = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Property Images */}
+            {property?.photos && property.photos.length > 0 && (
+              <Card>
+                <CardContent className="p-0">
+                  <div className="relative">
+                    <img
+                      src={property.photos[currentImageIndex]}
+                      alt={`${property.title} - Photo ${currentImageIndex + 1}`}
+                      className="w-full h-96 object-cover rounded-t-lg"
+                    />
+                    
+                    {property.photos.length > 1 && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white"
+                          onClick={prevImage}
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white"
+                          onClick={nextImage}
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </Button>
+                        
+                        <div className="absolute bottom-4 right-4 bg-black/50 text-white text-sm px-3 py-1 rounded">
+                          {currentImageIndex + 1} / {property.photos.length}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  
+                  {/* Thumbnail strip */}
+                  {property.photos.length > 1 && (
+                    <div className="p-4">
+                      <div className="flex gap-2 overflow-x-auto">
+                        {property.photos.map((photo, index) => (
+                          <button
+                            key={index}
+                            onClick={() => setCurrentImageIndex(index)}
+                            className={`flex-shrink-0 w-20 h-16 rounded border-2 overflow-hidden ${
+                              index === currentImageIndex ? 'border-primary' : 'border-gray-200'
+                            }`}
+                          >
+                            <img
+                              src={photo}
+                              alt={`Thumbnail ${index + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Video Tour */}
+            {property?.video_tour_url && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Video Tour</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="aspect-video">
+                    <iframe
+                      src={property.video_tour_url.replace('watch?v=', 'embed/')}
+                      className="w-full h-full rounded-lg"
+                      allowFullScreen
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Property Details Card */}
             <Card>
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div>
-                    <CardTitle className="text-xl">{property.title}</CardTitle>
+                    <CardTitle className="text-xl">{property?.title}</CardTitle>
                     <div className="flex items-center text-gray-600 mt-2">
                       <MapPin className="w-4 h-4 mr-1" />
-                      {isEditing ? (
-                        <Input
-                          value={`${editData.street_address}, ${editData.city}, ${editData.state} ${editData.pincode}`}
-                          onChange={(e) => {
-                            const parts = e.target.value.split(', ');
-                            setEditData({
-                              ...editData,
-                              street_address: parts[0] || '',
-                              city: parts[1] || '',
-                              state: parts[2]?.split(' ')[0] || '',
-                              pincode: parts[2]?.split(' ')[1] || ''
-                            });
-                          }}
-                          placeholder="Street, City, State Pincode"
-                        />
-                      ) : (
-                        <span>{property.street_address}, {property.city}, {property.state} {property.pincode}</span>
-                      )}
+                      <span>{property?.street_address}, {property?.city}, {property?.state} {property?.pincode}</span>
                     </div>
                   </div>
-                  <Badge variant={property.status === 'active' ? 'default' : 'secondary'}>
-                    {property.status}
+                  <Badge variant={property?.status === 'active' ? 'default' : 'secondary'}>
+                    {property?.status}
                   </Badge>
                 </div>
               </CardHeader>
@@ -328,28 +468,28 @@ const PropertyDetails = () => {
                   <div className="flex items-center">
                     <BedDouble className="w-5 h-5 text-gray-600 mr-2" />
                     <div>
-                      <p className="font-semibold">{property.bedrooms || 'N/A'}</p>
+                      <p className="font-semibold">{property?.bedrooms || 'N/A'}</p>
                       <p className="text-sm text-gray-600">Bedrooms</p>
                     </div>
                   </div>
                   <div className="flex items-center">
                     <Bath className="w-5 h-5 text-gray-600 mr-2" />
                     <div>
-                      <p className="font-semibold">{property.bathrooms || 'N/A'}</p>
+                      <p className="font-semibold">{property?.bathrooms || 'N/A'}</p>
                       <p className="text-sm text-gray-600">Bathrooms</p>
                     </div>
                   </div>
                   <div className="flex items-center">
                     <Home className="w-5 h-5 text-gray-600 mr-2" />
                     <div>
-                      <p className="font-semibold">{property.size_sqft || 'N/A'}</p>
+                      <p className="font-semibold">{property?.size_sqft || 'N/A'}</p>
                       <p className="text-sm text-gray-600">Sq ft</p>
                     </div>
                   </div>
                   <div className="flex items-center">
                     <Calendar className="w-5 h-5 text-gray-600 mr-2" />
                     <div>
-                      <p className="font-semibold">{new Date(property.availability_date).toLocaleDateString()}</p>
+                      <p className="font-semibold">{new Date(property?.availability_date).toLocaleDateString()}</p>
                       <p className="text-sm text-gray-600">Available</p>
                     </div>
                   </div>
@@ -367,12 +507,12 @@ const PropertyDetails = () => {
                       rows={4}
                     />
                   ) : (
-                    <p className="mt-2 text-gray-700">{property.house_rules || 'No description available'}</p>
+                    <p className="mt-2 text-gray-700">{property?.house_rules || 'No description available'}</p>
                   )}
                 </div>
 
                 {/* Amenities */}
-                {property.amenities && property.amenities.length > 0 && (
+                {property?.amenities && property.amenities.length > 0 && (
                   <div>
                     <Label className="text-base font-semibold">Amenities</Label>
                     <div className="mt-2 flex flex-wrap gap-2">
@@ -384,7 +524,7 @@ const PropertyDetails = () => {
                 )}
 
                 {/* Utilities */}
-                {property.utilities_included && property.utilities_included.length > 0 && (
+                {property?.utilities_included && property.utilities_included.length > 0 && (
                   <div>
                     <Label className="text-base font-semibold">Utilities Included</Label>
                     <div className="mt-2 flex flex-wrap gap-2">
@@ -396,6 +536,75 @@ const PropertyDetails = () => {
                 )}
               </CardContent>
             </Card>
+
+            {/* Inquiry Section for Tenants */}
+            {isTenant && !showInquiryForm && (
+              <Card>
+                <CardContent className="p-6 text-center">
+                  <MessageSquare className="w-12 h-12 text-primary mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Interested in this property?</h3>
+                  <p className="text-gray-600 mb-4">
+                    Send an inquiry to the landlord to get more information or schedule a viewing.
+                  </p>
+                  <Button onClick={() => setShowInquiryForm(true)}>
+                    <Send className="w-4 h-4 mr-2" />
+                    Send Inquiry
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Inquiry Form */}
+            {showInquiryForm && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Send Inquiry</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label htmlFor="inquiry-message">Your Message</Label>
+                    <Textarea
+                      id="inquiry-message"
+                      value={inquiryMessage}
+                      onChange={(e) => setInquiryMessage(e.target.value)}
+                      placeholder="Hi, I'm interested in this property. Could you please provide more details about..."
+                      rows={4}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleSendInquiry}
+                      disabled={submitInquiryMutation.isPending}
+                    >
+                      <Send className="w-4 h-4 mr-2" />
+                      {submitInquiryMutation.isPending ? 'Sending...' : 'Send Inquiry'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowInquiryForm(false)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Login prompt for non-authenticated users */}
+            {!user && (
+              <Card>
+                <CardContent className="p-6 text-center">
+                  <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Want to inquire about this property?</h3>
+                  <p className="text-gray-600 mb-4">
+                    Please log in to send inquiries to property owners.
+                  </p>
+                  <Button onClick={() => handleAuthClick('login')}>
+                    Login to Send Inquiry
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Sidebar */}
@@ -416,7 +625,7 @@ const PropertyDetails = () => {
                         className="text-2xl font-bold"
                       />
                     ) : (
-                      <p className="text-2xl font-bold">₹{property.monthly_rent?.toLocaleString()}</p>
+                      <p className="text-2xl font-bold">₹{property?.monthly_rent?.toLocaleString()}</p>
                     )}
                     <p className="text-sm text-gray-600">per month</p>
                   </div>
@@ -433,12 +642,12 @@ const PropertyDetails = () => {
                         className="w-32"
                       />
                     ) : (
-                      <span>₹{property.security_deposit?.toLocaleString()}</span>
+                      <span>₹{property?.security_deposit?.toLocaleString()}</span>
                     )}
                   </div>
                   <div className="flex justify-between mt-2">
                     <span>Broker Fee:</span>
-                    <span>{property.broker_free ? 'No' : 'Yes'}</span>
+                    <span>{property?.broker_free ? 'No' : 'Yes'}</span>
                   </div>
                 </div>
               </CardContent>
@@ -452,19 +661,19 @@ const PropertyDetails = () => {
                 <div className="space-y-3">
                   <div className="flex justify-between">
                     <span>Views:</span>
-                    <span className="font-semibold">{property.views_count || 0}</span>
+                    <span className="font-semibold">{property?.views_count || 0}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Property Type:</span>
-                    <span className="font-semibold">{property.property_type?.replace('_', ' ')}</span>
+                    <span className="font-semibold">{property?.property_type?.replace('_', ' ')}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Furnishing:</span>
-                    <span className="font-semibold">{property.furnishing_status}</span>
+                    <span className="font-semibold">{property?.furnishing_status}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Listed:</span>
-                    <span className="font-semibold">{new Date(property.created_at).toLocaleDateString()}</span>
+                    <span className="font-semibold">{new Date(property?.created_at).toLocaleDateString()}</span>
                   </div>
                 </div>
               </CardContent>

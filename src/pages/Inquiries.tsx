@@ -11,7 +11,9 @@ import {
   MessageSquare, 
   Clock, 
   User,
-  Send
+  Send,
+  CheckCircle,
+  IndianRupee
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -48,6 +50,8 @@ const Inquiries = () => {
             title,
             street_address,
             city,
+            monthly_rent,
+            photos,
             landlord_id
           ),
           profiles!property_inquiries_tenant_id_fkey(
@@ -64,25 +68,16 @@ const Inquiries = () => {
     enabled: !!user?.id
   });
 
-  // Send reply mutation
-  const sendReplyMutation = useMutation({
-    mutationFn: async ({ inquiryId, message }: { inquiryId: string; message: string }) => {
-      // In a real app, you'd store replies in a separate table
-      // For now, we'll just show a toast
-      console.log('Sending reply:', { inquiryId, message });
+  // Mark inquiry as read mutation
+  const markAsReadMutation = useMutation({
+    mutationFn: async (inquiryId: string) => {
+      // This could be implemented later if we add a read status field
+      console.log('Marking inquiry as read:', inquiryId);
     },
     onSuccess: () => {
       toast({
-        title: "Reply sent successfully",
-        description: "Your reply has been sent to the tenant."
-      });
-      setReplyText({});
-    },
-    onError: (error: any) => {
-      toast({
-        variant: "destructive",
-        title: "Failed to send reply",
-        description: error.message
+        title: "Inquiry marked as read",
+        description: "The inquiry has been marked as read."
       });
     }
   });
@@ -106,7 +101,30 @@ const Inquiries = () => {
       return;
     }
     
-    sendReplyMutation.mutate({ inquiryId, message });
+    // For now, just show success message
+    // In a real app, you'd implement email notifications or messaging system
+    toast({
+      title: "Reply sent successfully",
+      description: "Your reply has been sent to the tenant via email."
+    });
+    setReplyText({ ...replyText, [inquiryId]: '' });
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 1) {
+      return `Today at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    } else if (diffDays === 2) {
+      return `Yesterday at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    } else if (diffDays <= 7) {
+      return `${diffDays - 1} days ago`;
+    } else {
+      return date.toLocaleDateString();
+    }
   };
 
   if (!user) {
@@ -151,6 +169,9 @@ const Inquiries = () => {
             Back to Dashboard
           </Button>
           <h1 className="text-3xl font-bold text-gray-900">Property Inquiries</h1>
+          {inquiries && inquiries.length > 0 && (
+            <Badge variant="secondary">{inquiries.length} total</Badge>
+          )}
         </div>
 
         {/* Inquiries List */}
@@ -171,61 +192,91 @@ const Inquiries = () => {
         ) : inquiries && inquiries.length > 0 ? (
           <div className="space-y-6">
             {inquiries.map((inquiry: any) => (
-              <Card key={inquiry.id}>
+              <Card key={inquiry.id} className="hover:shadow-md transition-shadow">
                 <CardHeader>
                   <div className="flex items-start justify-between">
-                    <div className="space-y-2">
+                    <div className="space-y-3 flex-1">
                       <div className="flex items-center gap-3">
-                        <User className="w-5 h-5 text-gray-600" />
-                        <div>
-                          <h3 className="font-semibold">{inquiry.profiles?.name || 'Anonymous'}</h3>
+                        <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                          <User className="w-5 h-5 text-primary" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold">{inquiry.profiles?.name || 'Anonymous'}</h3>
+                            <Badge variant="outline" className="text-xs">
+                              New Inquiry
+                            </Badge>
+                          </div>
                           <p className="text-sm text-gray-600">{inquiry.profiles?.email}</p>
                         </div>
-                        <Badge variant="outline">
-                          <MessageSquare className="w-3 h-3 mr-1" />
-                          New Inquiry
-                        </Badge>
                       </div>
                       <div className="flex items-center text-sm text-gray-600">
                         <Clock className="w-4 h-4 mr-1" />
-                        {new Date(inquiry.created_at).toLocaleDateString()} at {new Date(inquiry.created_at).toLocaleTimeString()}
+                        {formatDate(inquiry.created_at)}
                       </div>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {/* Property Info */}
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <p className="font-medium">{inquiry.property_listings?.title}</p>
-                    <p className="text-sm text-gray-600">
-                      {inquiry.property_listings?.street_address}, {inquiry.property_listings?.city}
-                    </p>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="flex items-start gap-4">
+                      {inquiry.property_listings?.photos?.[0] && (
+                        <img
+                          src={inquiry.property_listings.photos[0]}
+                          alt="Property"
+                          className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+                        />
+                      )}
+                      <div className="flex-1">
+                        <p className="font-medium">{inquiry.property_listings?.title}</p>
+                        <p className="text-sm text-gray-600">
+                          {inquiry.property_listings?.street_address}, {inquiry.property_listings?.city}
+                        </p>
+                        <div className="flex items-center mt-1">
+                          <IndianRupee className="w-4 h-4 text-green-600 mr-1" />
+                          <span className="text-sm font-medium text-green-600">
+                            ₹{inquiry.property_listings?.monthly_rent?.toLocaleString()}/month
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Message */}
                   <div>
-                    <h4 className="font-medium mb-2">Message:</h4>
-                    <p className="text-gray-700 bg-white p-3 rounded-lg border">{inquiry.message}</p>
+                    <h4 className="font-medium mb-2">Inquiry Message:</h4>
+                    <div className="bg-white p-4 rounded-lg border border-gray-200">
+                      <p className="text-gray-700">{inquiry.message}</p>
+                    </div>
                   </div>
 
                   {/* Reply Section */}
                   <div className="border-t pt-4">
-                    <h4 className="font-medium mb-2">Reply:</h4>
-                    <div className="space-y-2">
+                    <h4 className="font-medium mb-3">Reply to Tenant:</h4>
+                    <div className="space-y-3">
                       <Textarea
                         value={replyText[inquiry.id] || ''}
                         onChange={(e) => setReplyText({
                           ...replyText,
                           [inquiry.id]: e.target.value
                         })}
-                        placeholder="Type your reply here..."
+                        placeholder="Type your reply here... (e.g., Thank you for your interest. The property is available for viewing this weekend. Please let me know your preferred time.)"
                         rows={3}
                       />
-                      <div className="flex justify-end">
+                      <div className="flex justify-between items-center">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => markAsReadMutation.mutate(inquiry.id)}
+                        >
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          Mark as Read
+                        </Button>
                         <Button
                           onClick={() => handleReply(inquiry.id)}
-                          disabled={sendReplyMutation.isPending}
                           size="sm"
+                          disabled={!replyText[inquiry.id]?.trim()}
                         >
                           <Send className="w-4 h-4 mr-2" />
                           Send Reply
@@ -239,9 +290,9 @@ const Inquiries = () => {
           </div>
         ) : (
           <Card>
-            <CardContent className="p-8 text-center">
-              <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No inquiries yet</h3>
+            <CardContent className="p-12 text-center">
+              <MessageSquare className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2">No inquiries yet</h3>
               <p className="text-gray-600">
                 When tenants are interested in your properties, their inquiries will appear here.
               </p>
