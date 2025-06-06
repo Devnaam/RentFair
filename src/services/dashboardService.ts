@@ -28,11 +28,12 @@ export interface PropertyWithStats {
   title: string;
   location: string;
   rent: number;
-  status: string;
+  status: 'active' | 'inactive' | 'rented' | 'pending_review' | 'draft';
   views: number;
   inquiries: number;
   rating: number;
   reviews: number;
+  photos?: string[];
 }
 
 export const fetchDashboardStats = async (userId: string): Promise<DashboardStats> => {
@@ -120,11 +121,12 @@ export const fetchLandlordProperties = async (userId: string): Promise<PropertyW
       title: listing.title || `${listing.property_type} in ${listing.city}`,
       location: `${listing.city}, ${listing.state}`,
       rent: listing.monthly_rent,
-      status: listing.status,
+      status: listing.status as 'active' | 'inactive' | 'rented' | 'pending_review' | 'draft',
       views: listing.views_count || 0,
       inquiries: 0, // This would need to be calculated from inquiries table
       rating: 4.5, // This would need to be calculated from reviews
       reviews: 0, // This would need to be calculated from reviews table
+      photos: Array.isArray(listing.photos) ? listing.photos : []
     }));
   } catch (error) {
     console.error('Error fetching landlord properties:', error);
@@ -151,12 +153,26 @@ export const updatePropertyStatus = async (propertyId: string, status: string): 
 };
 
 export const incrementPropertyViews = async (propertyId: string): Promise<void> => {
-  const { error } = await supabase
-    .from('property_listings')
-    .update({ views_count: supabase.rpc('increment', { x: 1 }) })
-    .eq('id', propertyId);
+  try {
+    // First get the current views count
+    const { data: currentData } = await supabase
+      .from('property_listings')
+      .select('views_count')
+      .eq('id', propertyId)
+      .single();
 
-  if (error) console.error('Error incrementing views:', error);
+    const currentViews = currentData?.views_count || 0;
+
+    // Then update with incremented value
+    const { error } = await supabase
+      .from('property_listings')
+      .update({ views_count: currentViews + 1 })
+      .eq('id', propertyId);
+
+    if (error) console.error('Error incrementing views:', error);
+  } catch (error) {
+    console.error('Error incrementing views:', error);
+  }
 };
 
 export const fetchRandomProperty = async (): Promise<PropertyWithStats | null> => {
@@ -175,11 +191,12 @@ export const fetchRandomProperty = async (): Promise<PropertyWithStats | null> =
       title: data.title || `${data.property_type} in ${data.city}`,
       location: `${data.city}, ${data.state}`,
       rent: data.monthly_rent,
-      status: data.status,
+      status: data.status as 'active' | 'inactive' | 'rented' | 'pending_review' | 'draft',
       views: data.views_count || 0,
       inquiries: 0,
       rating: 4.5,
       reviews: 0,
+      photos: Array.isArray(data.photos) ? data.photos : []
     };
   } catch (error) {
     console.error('Error fetching random property:', error);
