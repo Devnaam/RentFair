@@ -142,17 +142,23 @@ export const deleteProperty = async (propertyId: string): Promise<void> => {
   }
 };
 
-export const updatePropertyStatus = async (propertyId: string, status: ValidStatus): Promise<void> => {
+export const updatePropertyStatus = async (propertyId: string, status: string) => {
   try {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('property_listings')
-      .update({ status })
-      .eq('id', propertyId);
+      .update({ 
+        status: status as 'active' | 'inactive' | 'rented' | 'pending_review' | 'draft',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', propertyId)
+      .select()
+      .single();
 
     if (error) throw error;
+    return { data, error: null };
   } catch (error) {
     console.error('Error updating property status:', error);
-    throw error;
+    return { data: null, error: error as Error };
   }
 };
 

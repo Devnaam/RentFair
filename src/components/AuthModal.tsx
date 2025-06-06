@@ -1,11 +1,12 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Eye, EyeOff, User, Home } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import AuthTypeToggle from './auth/AuthTypeToggle';
+import UserRoleSelector from './auth/UserRoleSelector';
+import AuthForm from './auth/AuthForm';
+import AuthFooter from './auth/AuthFooter';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -15,7 +16,6 @@ interface AuthModalProps {
 
 const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialType }) => {
   const [authType, setAuthType] = useState<'login' | 'signup'>(initialType);
-  const [showPassword, setShowPassword] = useState(false);
   const [userRole, setUserRole] = useState<'tenant' | 'landlord'>('tenant');
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -109,31 +109,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialType }) =
         </DialogHeader>
 
         <div className="space-y-4 sm:space-y-6">
-          {/* Auth Type Toggle */}
-          <div className="flex bg-gray-100 rounded-lg p-1">
-            <button
-              onClick={() => setAuthType('login')}
-              className={`flex-1 py-2 px-2 sm:px-4 rounded-md text-sm font-medium transition-colors ${
-                authType === 'login'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Login
-            </button>
-            <button
-              onClick={() => setAuthType('signup')}
-              className={`flex-1 py-2 px-2 sm:px-4 rounded-md text-sm font-medium transition-colors ${
-                authType === 'signup'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Sign Up
-            </button>
-          </div>
+          <AuthTypeToggle authType={authType} onAuthTypeChange={setAuthType} />
 
-          {/* Google Sign In */}
           <Button
             type="button"
             variant="outline"
@@ -153,158 +130,19 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialType }) =
             </div>
           </div>
 
-          {/* User Role Selection for Signup */}
           {authType === 'signup' && (
-            <div className="space-y-2">
-              <Label className="text-sm sm:text-base">I am a</Label>
-              <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                <button
-                  type="button"
-                  onClick={() => setUserRole('tenant')}
-                  className={`p-3 sm:p-4 rounded-lg border-2 transition-colors ${
-                    userRole === 'tenant'
-                      ? 'border-primary bg-primary/5'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <User className="w-5 h-5 sm:w-6 sm:h-6 mx-auto mb-1 sm:mb-2 text-primary" />
-                  <span className="text-xs sm:text-sm font-medium">Tenant</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setUserRole('landlord')}
-                  className={`p-3 sm:p-4 rounded-lg border-2 transition-colors ${
-                    userRole === 'landlord'
-                      ? 'border-primary bg-primary/5'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <Home className="w-5 h-5 sm:w-6 sm:h-6 mx-auto mb-1 sm:mb-2 text-primary" />
-                  <span className="text-xs sm:text-sm font-medium">Landlord</span>
-                </button>
-              </div>
-            </div>
+            <UserRoleSelector userRole={userRole} onRoleChange={setUserRole} />
           )}
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
-            {authType === 'signup' && (
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm sm:text-base">Full Name</Label>
-                <Input
-                  id="name"
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
-                  placeholder="Enter your full name"
-                  className="text-sm sm:text-base"
-                  required
-                />
-              </div>
-            )}
+          <AuthForm
+            authType={authType}
+            formData={formData}
+            loading={loading}
+            onInputChange={handleInputChange}
+            onSubmit={handleSubmit}
+          />
 
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm sm:text-base">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
-                placeholder="Enter your email"
-                className="text-sm sm:text-base"
-                autoComplete="email"
-                required
-              />
-            </div>
-
-            {authType === 'signup' && (
-              <div className="space-y-2">
-                <Label htmlFor="phone" className="text-sm sm:text-base">Phone Number</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => handleInputChange('phone', e.target.value)}
-                  placeholder="Enter your phone number"
-                  className="text-sm sm:text-base"
-                  autoComplete="tel"
-                  required
-                />
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm sm:text-base">Password</Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={formData.password}
-                  onChange={(e) => handleInputChange('password', e.target.value)}
-                  placeholder="Enter your password"
-                  className="text-sm sm:text-base pr-10"
-                  autoComplete={authType === 'login' ? 'current-password' : 'new-password'}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            {authType === 'signup' && (
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="text-sm sm:text-base">Confirm Password</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  value={formData.confirmPassword}
-                  onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                  placeholder="Confirm your password"
-                  className="text-sm sm:text-base"
-                  autoComplete="new-password"
-                  required
-                />
-              </div>
-            )}
-
-            <Button 
-              type="submit" 
-              className="w-full bg-primary hover:bg-primary-dark text-white text-sm sm:text-base py-2 sm:py-3"
-              disabled={loading}
-            >
-              {loading ? 'Please wait...' : (authType === 'login' ? 'Login' : 'Create Account')}
-            </Button>
-          </form>
-
-          {/* Footer */}
-          <div className="text-center text-xs sm:text-sm text-gray-600">
-            {authType === 'login' ? (
-              <>
-                Don't have an account?{' '}
-                <button
-                  onClick={() => setAuthType('signup')}
-                  className="text-primary hover:underline font-medium"
-                >
-                  Sign up
-                </button>
-              </>
-            ) : (
-              <>
-                Already have an account?{' '}
-                <button
-                  onClick={() => setAuthType('login')}
-                  className="text-primary hover:underline font-medium"
-                >
-                  Login
-                </button>
-              </>
-            )}
-          </div>
+          <AuthFooter authType={authType} onAuthTypeChange={setAuthType} />
         </div>
       </DialogContent>
     </Dialog>
