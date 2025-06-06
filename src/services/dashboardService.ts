@@ -51,10 +51,14 @@ export const fetchDashboardStats = async (userId: string): Promise<DashboardStat
       .eq('landlord_id', userId)
       .eq('status', 'active');
 
-    // Fetch total inquiries - using correct table name
+    // Fetch total inquiries for landlord's properties
     const { count: totalInquiries } = await supabase
       .from('property_inquiries')
-      .select('*', { count: 'exact', head: true });
+      .select(`
+        *,
+        property_listings!inner(landlord_id)
+      `, { count: 'exact', head: true })
+      .eq('property_listings.landlord_id', userId);
 
     return {
       totalListings: totalListings || 0,
@@ -116,18 +120,31 @@ export const fetchLandlordProperties = async (userId: string): Promise<PropertyW
 
     if (error) throw error;
 
-    return (data || []).map(listing => ({
-      id: listing.id,
-      title: listing.title || `${listing.property_type} in ${listing.city}`,
-      location: `${listing.city}, ${listing.state}`,
-      rent: listing.monthly_rent,
-      status: listing.status as 'active' | 'inactive' | 'rented' | 'pending_review' | 'draft',
-      views: listing.views_count || 0,
-      inquiries: 0, // This would need to be calculated from inquiries table
-      rating: 4.5, // This would need to be calculated from reviews
-      reviews: 0, // This would need to be calculated from reviews table
-      photos: Array.isArray(listing.photos) ? listing.photos : []
-    }));
+    // Get inquiry counts for each property
+    const propertiesWithStats = await Promise.all(
+      (data || []).map(async (listing) => {
+        // Count inquiries for this property
+        const { count: inquiryCount } = await supabase
+          .from('property_inquiries')
+          .select('*', { count: 'exact', head: true })
+          .eq('listing_id', listing.id);
+
+        return {
+          id: listing.id,
+          title: listing.title || `${listing.property_type} in ${listing.city}`,
+          location: `${listing.city}, ${listing.state}`,
+          rent: listing.monthly_rent,
+          status: (listing.status || 'draft') as 'active' | 'inactive' | 'rented' | 'pending_review' | 'draft',
+          views: listing.views_count || 0,
+          inquiries: inquiryCount || 0,
+          rating: 4.5, // This would need to be calculated from reviews
+          reviews: 0, // This would need to be calculated from reviews table
+          photos: Array.isArray(listing.photos) ? listing.photos : []
+        };
+      })
+    );
+
+    return propertiesWithStats;
   } catch (error) {
     console.error('Error fetching landlord properties:', error);
     return [];
@@ -191,7 +208,7 @@ export const fetchRandomProperty = async (): Promise<PropertyWithStats | null> =
       title: data.title || `${data.property_type} in ${data.city}`,
       location: `${data.city}, ${data.state}`,
       rent: data.monthly_rent,
-      status: data.status as 'active' | 'inactive' | 'rented' | 'pending_review' | 'draft',
+      status: (data.status || 'active') as 'active' | 'inactive' | 'rented' | 'pending_review' | 'draft',
       views: data.views_count || 0,
       inquiries: 0,
       rating: 4.5,

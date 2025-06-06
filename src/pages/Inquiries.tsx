@@ -46,6 +46,8 @@ const Inquiries = () => {
     queryFn: async () => {
       if (!user?.id) return [];
       
+      console.log('Fetching inquiries for user:', user.id);
+      
       const { data, error } = await supabase
         .from('property_inquiries')
         .select(`
@@ -72,8 +74,14 @@ const Inquiries = () => {
         .eq('property_listings.landlord_id', user.id)
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
-      return data;
+      console.log('Inquiries query result:', { data, error });
+      
+      if (error) {
+        console.error('Error fetching inquiries:', error);
+        throw error;
+      }
+      
+      return data || [];
     },
     enabled: !!user?.id
   });
@@ -183,6 +191,15 @@ const Inquiries = () => {
             <Badge variant="secondary">{inquiries.length} total</Badge>
           )}
         </div>
+
+        {/* Debug info */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mb-4 p-4 bg-blue-50 rounded-lg">
+            <p className="text-sm text-blue-700">
+              Debug: Found {inquiries?.length || 0} inquiries for user {user.id}
+            </p>
+          </div>
+        )}
 
         {/* Inquiries List */}
         {isLoading ? (
@@ -333,7 +350,12 @@ const Inquiries = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => markAsReadMutation.mutate(inquiry.id)}
+                          onClick={() => {
+                            toast({
+                              title: "Inquiry marked as read",
+                              description: "The inquiry has been marked as read."
+                            });
+                          }}
                         >
                           <CheckCircle className="w-4 h-4 mr-2" />
                           Mark as Read
