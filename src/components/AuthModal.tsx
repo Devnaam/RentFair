@@ -101,19 +101,19 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialType }) =
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-center text-2xl font-bold">
+      <DialogContent className="w-full max-w-md mx-auto max-h-[95vh] overflow-y-auto p-4 sm:p-6">
+        <DialogHeader className="pb-4">
+          <DialogTitle className="text-center text-xl sm:text-2xl font-bold">
             {authType === 'login' ? 'Welcome Back' : 'Join RentFair'}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* Auth Type Toggle */}
           <div className="flex bg-gray-100 rounded-lg p-1">
             <button
               onClick={() => setAuthType('login')}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+              className={`flex-1 py-2 px-2 sm:px-4 rounded-md text-sm font-medium transition-colors ${
                 authType === 'login'
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
@@ -123,7 +123,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialType }) =
             </button>
             <button
               onClick={() => setAuthType('signup')}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+              className={`flex-1 py-2 px-2 sm:px-4 rounded-md text-sm font-medium transition-colors ${
                 authType === 'signup'
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
@@ -137,7 +137,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialType }) =
           <Button
             type="button"
             variant="outline"
-            className="w-full"
+            className="w-full text-sm sm:text-base"
             onClick={handleGoogleSignIn}
             disabled={loading}
           >
@@ -156,80 +156,85 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialType }) =
           {/* User Role Selection for Signup */}
           {authType === 'signup' && (
             <div className="space-y-2">
-              <Label>I am a</Label>
-              <div className="grid grid-cols-2 gap-3">
+              <Label className="text-sm sm:text-base">I am a</Label>
+              <div className="grid grid-cols-2 gap-2 sm:gap-3">
                 <button
                   type="button"
                   onClick={() => setUserRole('tenant')}
-                  className={`p-4 rounded-lg border-2 transition-colors ${
+                  className={`p-3 sm:p-4 rounded-lg border-2 transition-colors ${
                     userRole === 'tenant'
                       ? 'border-primary bg-primary/5'
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
-                  <User className="w-6 h-6 mx-auto mb-2 text-primary" />
-                  <span className="text-sm font-medium">Tenant</span>
+                  <User className="w-5 h-5 sm:w-6 sm:h-6 mx-auto mb-1 sm:mb-2 text-primary" />
+                  <span className="text-xs sm:text-sm font-medium">Tenant</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setUserRole('landlord')}
-                  className={`p-4 rounded-lg border-2 transition-colors ${
+                  className={`p-3 sm:p-4 rounded-lg border-2 transition-colors ${
                     userRole === 'landlord'
                       ? 'border-primary bg-primary/5'
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
-                  <Home className="w-6 h-6 mx-auto mb-2 text-primary" />
-                  <span className="text-sm font-medium">Landlord</span>
+                  <Home className="w-5 h-5 sm:w-6 sm:h-6 mx-auto mb-1 sm:mb-2 text-primary" />
+                  <span className="text-xs sm:text-sm font-medium">Landlord</span>
                 </button>
               </div>
             </div>
           )}
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
             {authType === 'signup' && (
               <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
+                <Label htmlFor="name" className="text-sm sm:text-base">Full Name</Label>
                 <Input
                   id="name"
                   type="text"
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
                   placeholder="Enter your full name"
+                  className="text-sm sm:text-base"
                   required
                 />
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-sm sm:text-base">Email</Label>
               <Input
                 id="email"
                 type="email"
                 value={formData.email}
                 onChange={(e) => handleInputChange('email', e.target.value)}
                 placeholder="Enter your email"
+                className="text-sm sm:text-base"
+                autoComplete="email"
                 required
               />
             </div>
 
             {authType === 'signup' && (
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
+                <Label htmlFor="phone" className="text-sm sm:text-base">Phone Number</Label>
                 <Input
                   id="phone"
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => handleInputChange('phone', e.target.value)}
                   placeholder="Enter your phone number"
+                  className="text-sm sm:text-base"
+                  autoComplete="tel"
                   required
                 />
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-sm sm:text-base">Password</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -237,6 +242,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialType }) =
                   value={formData.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
                   placeholder="Enter your password"
+                  className="text-sm sm:text-base pr-10"
+                  autoComplete={authType === 'login' ? 'current-password' : 'new-password'}
                   required
                 />
                 <button
@@ -251,13 +258,15 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialType }) =
 
             {authType === 'signup' && (
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Label htmlFor="confirmPassword" className="text-sm sm:text-base">Confirm Password</Label>
                 <Input
                   id="confirmPassword"
                   type="password"
                   value={formData.confirmPassword}
                   onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
                   placeholder="Confirm your password"
+                  className="text-sm sm:text-base"
+                  autoComplete="new-password"
                   required
                 />
               </div>
@@ -265,7 +274,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialType }) =
 
             <Button 
               type="submit" 
-              className="w-full bg-primary hover:bg-primary-dark text-white"
+              className="w-full bg-primary hover:bg-primary-dark text-white text-sm sm:text-base py-2 sm:py-3"
               disabled={loading}
             >
               {loading ? 'Please wait...' : (authType === 'login' ? 'Login' : 'Create Account')}
@@ -273,7 +282,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialType }) =
           </form>
 
           {/* Footer */}
-          <div className="text-center text-sm text-gray-600">
+          <div className="text-center text-xs sm:text-sm text-gray-600">
             {authType === 'login' ? (
               <>
                 Don't have an account?{' '}

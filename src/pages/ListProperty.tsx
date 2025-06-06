@@ -47,7 +47,14 @@ const ListProperty = () => {
   });
 
   if (loading) {
-    return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
   }
 
   if (!user) {
@@ -56,12 +63,12 @@ const ListProperty = () => {
 
   if (user.user_metadata?.role !== 'landlord') {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
-          <CardContent className="p-6 text-center">
-            <h2 className="text-xl font-semibold mb-2">Access Restricted</h2>
-            <p className="text-gray-600">Only landlords can list properties.</p>
-            <Button className="mt-4" onClick={() => window.history.back()}>
+          <CardContent className="p-4 sm:p-6 text-center">
+            <h2 className="text-lg sm:text-xl font-semibold mb-2">Access Restricted</h2>
+            <p className="text-gray-600 text-sm sm:text-base mb-4">Only landlords can list properties.</p>
+            <Button className="w-full" onClick={() => window.history.back()}>
               Go Back
             </Button>
           </CardContent>
@@ -100,7 +107,7 @@ const ListProperty = () => {
         isSubmitting={isSubmitting}
       />
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <div className="max-w-4xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-8 space-y-6 sm:space-y-8">
         <PropertyInfoForm formData={formData} updateFormData={updateFormData} />
         <RentFeesForm formData={formData} updateFormData={updateFormData} />
         <PhotosVideoForm formData={formData} updateFormData={updateFormData} />
