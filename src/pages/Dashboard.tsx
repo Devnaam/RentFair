@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Header from '@/components/Header';
@@ -61,6 +62,13 @@ const Dashboard = () => {
 
   // Check if user is landlord
   const isLandlord = userProfile?.role === 'landlord';
+
+  // Redirect tenants to tenant dashboard
+  React.useEffect(() => {
+    if (userProfile && !isLandlord) {
+      navigate('/tenant-dashboard');
+    }
+  }, [userProfile, isLandlord, navigate]);
 
   // Fetch dashboard statistics
   const { data: stats, isLoading: statsLoading } = useQuery({
@@ -160,34 +168,22 @@ const Dashboard = () => {
     );
   }
 
-  // If user is not a landlord, show tenant message
-  if (userProfile && !isLandlord) {
+  // Show loading while checking user role
+  if (!userProfile) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header onAuthClick={handleAuthClick} />
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-8 sm:py-20">
-          <Card className="max-w-md mx-auto">
-            <CardContent className="p-4 sm:p-8 text-center">
-              <UserCheck className="w-12 h-12 sm:w-16 sm:h-16 text-blue-600 mx-auto mb-4" />
-              <h2 className="text-xl sm:text-2xl font-bold mb-4">Tenant Account</h2>
-              <p className="text-gray-600 mb-6 text-sm sm:text-base">
-                You're logged in as a tenant. This dashboard is only available for landlords who want to list their properties.
-              </p>
-              <div className="space-y-3">
-                <Button onClick={() => navigate('/find-room')} className="w-full">
-                  Find Properties
-                </Button>
-                <Button variant="outline" onClick={() => navigate('/')} className="w-full">
-                  Back to Home
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading...</p>
+          </div>
         </div>
       </div>
     );
   }
 
+  // This component is now only for landlords
   return (
     <div className="min-h-screen bg-gray-50">
       <Header onAuthClick={handleAuthClick} />

@@ -50,24 +50,24 @@ const PropertyCard = ({
             
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6">
               <div className="flex items-center">
-                <Eye className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 mr-2" />
-                <div>
+                <Eye className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 mr-2 flex-shrink-0" />
+                <div className="min-w-0">
                   <p className="font-semibold text-sm sm:text-base">{property.views}</p>
-                  <p className="text-xs sm:text-sm text-gray-600">Views this week</p>
+                  <p className="text-xs sm:text-sm text-gray-600 truncate">Views this week</p>
                 </div>
               </div>
               <div className="flex items-center">
-                <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 mr-2" />
-                <div>
+                <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 mr-2 flex-shrink-0" />
+                <div className="min-w-0">
                   <p className="font-semibold text-sm sm:text-base">{property.inquiries}</p>
-                  <p className="text-xs sm:text-sm text-gray-600">New inquiries</p>
+                  <p className="text-xs sm:text-sm text-gray-600 truncate">New inquiries</p>
                 </div>
               </div>
               <div className="flex items-center">
-                <Star className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500 mr-2" />
-                <div>
+                <Star className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500 mr-2 flex-shrink-0" />
+                <div className="min-w-0">
                   <p className="font-semibold text-sm sm:text-base">{property.rating}</p>
-                  <p className="text-xs sm:text-sm text-gray-600">({property.reviews} reviews)</p>
+                  <p className="text-xs sm:text-sm text-gray-600 truncate">({property.reviews} reviews)</p>
                 </div>
               </div>
             </div>
