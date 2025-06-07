@@ -17,13 +17,15 @@ import {
   MapPin,
   Home,
   Bath,
-  Eye
+  Eye,
+  Bell
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import AuthModal from '@/components/AuthModal';
+import { fetchLandlordInquiries } from '@/services/dashboardService';
 
 const Inquiries = () => {
   const { user } = useAuth();
@@ -41,49 +43,12 @@ const Inquiries = () => {
   });
 
   // Fetch inquiries for landlord's properties with complete property details
-  const { data: inquiries, isLoading } = useQuery({
-    queryKey: ['inquiries', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      
-      console.log('Fetching inquiries for user:', user.id);
-      
-      const { data, error } = await supabase
-        .from('property_inquiries')
-        .select(`
-          *,
-          property_listings!inner(
-            id,
-            title,
-            street_address,
-            city,
-            state,
-            monthly_rent,
-            photos,
-            bedrooms,
-            bathrooms,
-            views_count,
-            landlord_id
-          ),
-          profiles!property_inquiries_tenant_id_fkey(
-            name,
-            email,
-            phone
-          )
-        `)
-        .eq('property_listings.landlord_id', user.id)
-        .order('created_at', { ascending: false });
-      
-      console.log('Inquiries query result:', { data, error });
-      
-      if (error) {
-        console.error('Error fetching inquiries:', error);
-        throw error;
-      }
-      
-      return data || [];
-    },
-    enabled: !!user?.id
+  const { data: inquiries, isLoading, error } = useQuery({
+    queryKey: ['landlord-inquiries', user?.id],
+    queryFn: () => fetchLandlordInquiries(user!.id),
+    enabled: !!user?.id,
+    retry: 3,
+    retryDelay: 1000
   });
 
   // Mark inquiry as read mutation
@@ -188,7 +153,10 @@ const Inquiries = () => {
           </Button>
           <h1 className="text-3xl font-bold text-gray-900">Property Inquiries</h1>
           {inquiries && inquiries.length > 0 && (
-            <Badge variant="secondary">{inquiries.length} total</Badge>
+            <Badge variant="secondary" className="flex items-center gap-1">
+              <Bell className="w-3 h-3" />
+              {inquiries.length} total
+            </Badge>
           )}
         </div>
 
@@ -198,6 +166,11 @@ const Inquiries = () => {
             <p className="text-sm text-blue-700">
               Debug: Found {inquiries?.length || 0} inquiries for user {user.id}
             </p>
+            {error && (
+              <p className="text-sm text-red-700 mt-2">
+                Error: {error.message}
+              </p>
+            )}
           </div>
         )}
 
@@ -219,7 +192,7 @@ const Inquiries = () => {
         ) : inquiries && inquiries.length > 0 ? (
           <div className="space-y-6">
             {inquiries.map((inquiry: any) => (
-              <Card key={inquiry.id} className="hover:shadow-md transition-shadow">
+              <Card key={inquiry.id} className="hover:shadow-md transition-shadow border-l-4 border-l-blue-500">
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="space-y-3 flex-1">
@@ -230,7 +203,8 @@ const Inquiries = () => {
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <h3 className="font-semibold">{inquiry.profiles?.name || 'Anonymous Tenant'}</h3>
-                            <Badge variant="outline" className="text-xs">
+                            <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                              <Bell className="w-3 h-3 mr-1" />
                               New Inquiry
                             </Badge>
                           </div>

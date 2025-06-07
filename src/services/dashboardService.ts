@@ -220,3 +220,48 @@ export const fetchRandomProperty = async (): Promise<PropertyWithStats | null> =
     return null;
   }
 };
+
+// New function to fetch detailed inquiries for landlord
+export const fetchLandlordInquiries = async (userId: string) => {
+  try {
+    console.log('Fetching detailed inquiries for landlord:', userId);
+    
+    const { data, error } = await supabase
+      .from('property_inquiries')
+      .select(`
+        *,
+        property_listings!inner(
+          id,
+          title,
+          street_address,
+          city,
+          state,
+          monthly_rent,
+          photos,
+          bedrooms,
+          bathrooms,
+          views_count,
+          landlord_id
+        ),
+        profiles!property_inquiries_tenant_id_fkey(
+          name,
+          email,
+          phone
+        )
+      `)
+      .eq('property_listings.landlord_id', userId)
+      .order('created_at', { ascending: false });
+    
+    console.log('Detailed inquiries query result:', { data, error, userId });
+    
+    if (error) {
+      console.error('Error fetching detailed inquiries:', error);
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error in fetchLandlordInquiries:', error);
+    throw error;
+  }
+};
