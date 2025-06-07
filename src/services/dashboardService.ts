@@ -129,12 +129,16 @@ export const fetchLandlordProperties = async (userId: string): Promise<PropertyW
           .select('*', { count: 'exact', head: true })
           .eq('listing_id', listing.id);
 
+        // Ensure status is properly typed
+        const validStatus = ['active', 'inactive', 'rented', 'pending_review', 'draft'];
+        const status = validStatus.includes(listing.status) ? listing.status : 'draft';
+
         return {
           id: listing.id,
           title: listing.title || `${listing.property_type} in ${listing.city}`,
           location: `${listing.city}, ${listing.state}`,
           rent: listing.monthly_rent,
-          status: (listing.status || 'draft') as 'active' | 'inactive' | 'rented' | 'pending_review' | 'draft',
+          status: status as 'active' | 'inactive' | 'rented' | 'pending_review' | 'draft',
           views: listing.views_count || 0,
           inquiries: inquiryCount || 0,
           rating: 4.5, // This would need to be calculated from reviews
@@ -221,7 +225,7 @@ export const fetchRandomProperty = async (): Promise<PropertyWithStats | null> =
   }
 };
 
-// New function to fetch detailed inquiries for landlord
+// Fixed function to fetch detailed inquiries for landlord
 export const fetchLandlordInquiries = async (userId: string) => {
   try {
     console.log('Fetching detailed inquiries for landlord:', userId);
@@ -229,7 +233,12 @@ export const fetchLandlordInquiries = async (userId: string) => {
     const { data, error } = await supabase
       .from('property_inquiries')
       .select(`
-        *,
+        id,
+        message,
+        created_at,
+        updated_at,
+        listing_id,
+        tenant_id,
         property_listings!inner(
           id,
           title,
@@ -242,24 +251,36 @@ export const fetchLandlordInquiries = async (userId: string) => {
           bathrooms,
           views_count,
           landlord_id
-        ),
-        profiles!property_inquiries_tenant_id_fkey(
-          name,
-          email,
-          phone
         )
       `)
       .eq('property_listings.landlord_id', userId)
       .order('created_at', { ascending: false });
     
-    console.log('Detailed inquiries query result:', { data, error, userId });
+    console.log('Inquiries query result:', { data, error, userId });
     
     if (error) {
       console.error('Error fetching detailed inquiries:', error);
       throw error;
     }
+
+    // Now fetch tenant profiles separately for each inquiry
+    const inquiriesWithProfiles = await Promise.all(
+      (data || []).map(async (inquiry) => {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('name, email, phone')
+          .eq('id', inquiry.tenant_id)
+          .single();
+
+        return {
+          ...inquiry,
+          profiles: profile || { name: null, email: null, phone: null }
+        };
+      })
+    );
     
-    return data || [];
+    console.log('Final inquiries with profiles:', inquiriesWithProfiles);
+    return inquiriesWithProfiles;
   } catch (error) {
     console.error('Error in fetchLandlordInquiries:', error);
     throw error;

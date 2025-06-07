@@ -1,241 +1,250 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Home, User, LogOut, Plus } from 'lucide-react';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { Home, Menu, X, Plus } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { useQuery } from '@tanstack/react-query';
+import NotificationBell from '@/components/NotificationBell';
 
 interface HeaderProps {
   onAuthClick: (type: 'login' | 'signup') => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ onAuthClick }) => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const isMobile = useIsMobile();
-  const { user, signOut, loading } = useAuth();
+const Header = ({ onAuthClick }: HeaderProps) => {
+  const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const handleSignOut = async () => {
-    await signOut();
-    setIsMenuOpen(false);
-  };
+  // Fetch user profile to check if they're a landlord
+  const { data: userProfile } = useQuery({
+    queryKey: ['user-profile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id
+  });
 
-  const handleListProperty = () => {
-    if (!user) {
-      onAuthClick('signup');
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to log out"
+      });
     } else {
-      navigate('/list-property');
+      toast({
+        title: "Logged out successfully"
+      });
+      navigate('/');
     }
-    setIsMenuOpen(false);
   };
 
-  const getUserInitials = (name: string | undefined) => {
-    if (!name) return 'U';
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-  };
+  const isLandlord = userProfile?.role === 'landlord';
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+    <header className="bg-white shadow-sm border-b sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <div className="flex items-center">
-            <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/')}>
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <Home className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-xl font-bold text-gray-900">RentFair</span>
-            </div>
-          </div>
+          <Link to="/" className="flex items-center space-x-2">
+            <Home className="w-8 h-8 text-blue-600" />
+            <span className="text-xl font-bold text-gray-900">RentFair</span>
+          </Link>
 
           {/* Desktop Navigation */}
-          {!isMobile && (
-            <nav className="hidden md:flex items-center space-x-8">
-              <button 
-                onClick={() => navigate('/find-room')}
-                className="text-gray-700 hover:text-primary transition-colors"
-              >
-                Find Room
-              </button>
-              <button 
-                onClick={() => navigate('/about')}
-                className="text-gray-700 hover:text-primary transition-colors"
-              >
-                About
-              </button>
-              <button 
-                onClick={() => navigate('/safety')}
-                className="text-gray-700 hover:text-primary transition-colors"
-              >
-                Safety
-              </button>
-              <button 
-                onClick={() => navigate('/help')}
-                className="text-gray-700 hover:text-primary transition-colors"
-              >
-                Help
-              </button>
-            </nav>
-          )}
+          <nav className="hidden md:flex items-center space-x-8">
+            <Link to="/find-room" className="text-gray-700 hover:text-blue-600 transition-colors">
+              Find Room
+            </Link>
+            <Link to="/about" className="text-gray-700 hover:text-blue-600 transition-colors">
+              About
+            </Link>
+            <Link to="/safety" className="text-gray-700 hover:text-blue-600 transition-colors">
+              Safety
+            </Link>
+            <Link to="/help" className="text-gray-700 hover:text-blue-600 transition-colors">
+              Help
+            </Link>
+          </nav>
 
-          {/* CTA Buttons */}
-          <div className="flex items-center space-x-3">
-            {!loading && (
+          {/* Right side buttons */}
+          <div className="flex items-center space-x-4">
+            {/* Notification Bell for Landlords */}
+            {user && isLandlord && <NotificationBell />}
+            
+            {user ? (
+              <div className="flex items-center space-x-3">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => navigate('/list-property')}
+                  className="hidden sm:flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  List Property
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => navigate('/dashboard')}
+                >
+                  Dashboard
+                </Button>
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm font-medium">
+                      {user.email?.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={handleLogout}>
+                    Logout
+                  </Button>
+                </div>
+              </div>
+            ) : (
               <>
-                {!user ? (
-                  <>
-                    {!isMobile && (
-                      <>
-                        <Button
-                          variant="ghost"
-                          onClick={() => onAuthClick('login')}
-                          className="text-gray-700 hover:text-primary"
-                        >
-                          Login
-                        </Button>
-                        <Button
-                          onClick={handleListProperty}
-                          className="bg-primary hover:bg-primary-dark text-white"
-                        >
-                          <Plus className="w-4 h-4 mr-2" />
-                          List Property
-                        </Button>
-                      </>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    {!isMobile && (
-                      <div className="flex items-center space-x-3">
-                        <Button
-                          onClick={handleListProperty}
-                          className="bg-primary hover:bg-primary-dark text-white"
-                        >
-                          <Plus className="w-4 h-4 mr-2" />
-                          List Property
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          onClick={() => navigate('/dashboard')}
-                          className="text-gray-700 hover:text-primary"
-                        >
-                          Dashboard
-                        </Button>
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback className="bg-primary text-white text-xs">
-                            {getUserInitials(user.user_metadata?.name)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={handleSignOut}
-                          className="text-gray-700 hover:text-primary"
-                        >
-                          <LogOut className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    )}
-                  </>
-                )}
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => navigate('/list-property')}
+                  className="hidden sm:flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  List Property
+                </Button>
+                <div className="hidden sm:flex items-center space-x-2">
+                  <Button variant="ghost" size="sm" onClick={() => onAuthClick('login')}>
+                    Login
+                  </Button>
+                  <Button size="sm" onClick={() => onAuthClick('signup')}>
+                    Sign Up
+                  </Button>
+                </div>
               </>
             )}
 
-            {/* Mobile Menu Button */}
-            {isMobile && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="md:hidden"
-              >
-                {user ? (
-                  <Avatar className="h-6 w-6">
-                    <AvatarFallback className="bg-primary text-white text-xs">
-                      {getUserInitials(user.user_metadata?.name)}
-                    </AvatarFallback>
-                  </Avatar>
-                ) : (
-                  <User className="w-5 h-5" />
-                )}
-              </Button>
-            )}
+            {/* Mobile menu button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="md:hidden"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </Button>
           </div>
         </div>
 
-        {/* Mobile Menu */}
-        {isMobile && isMenuOpen && (
-          <div className="md:hidden border-t border-gray-200 py-4">
+        {/* Mobile Navigation */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden py-4 border-t">
             <div className="flex flex-col space-y-3">
-              <button 
-                onClick={() => { navigate('/find-room'); setIsMenuOpen(false); }}
-                className="text-gray-700 hover:text-primary transition-colors py-2 text-left"
+              <Link 
+                to="/find-room" 
+                className="text-gray-700 hover:text-blue-600 transition-colors px-2 py-1"
+                onClick={() => setIsMobileMenuOpen(false)}
               >
                 Find Room
-              </button>
-              <button 
-                onClick={() => { navigate('/about'); setIsMenuOpen(false); }}
-                className="text-gray-700 hover:text-primary transition-colors py-2 text-left"
+              </Link>
+              <Link 
+                to="/about" 
+                className="text-gray-700 hover:text-blue-600 transition-colors px-2 py-1"
+                onClick={() => setIsMobileMenuOpen(false)}
               >
                 About
-              </button>
-              <button 
-                onClick={() => { navigate('/safety'); setIsMenuOpen(false); }}
-                className="text-gray-700 hover:text-primary transition-colors py-2 text-left"
+              </Link>
+              <Link 
+                to="/safety" 
+                className="text-gray-700 hover:text-blue-600 transition-colors px-2 py-1"
+                onClick={() => setIsMobileMenuOpen(false)}
               >
                 Safety
-              </button>
-              <button 
-                onClick={() => { navigate('/help'); setIsMenuOpen(false); }}
-                className="text-gray-700 hover:text-primary transition-colors py-2 text-left"
+              </Link>
+              <Link 
+                to="/help" 
+                className="text-gray-700 hover:text-blue-600 transition-colors px-2 py-1"
+                onClick={() => setIsMobileMenuOpen(false)}
               >
                 Help
-              </button>
-              <div className="border-t border-gray-200 pt-3 space-y-2">
-                {!user ? (
-                  <>
-                    <Button
-                      variant="outline"
-                      onClick={() => { onAuthClick('login'); setIsMenuOpen(false); }}
-                      className="w-full"
-                    >
-                      Login
-                    </Button>
-                    <Button
-                      onClick={handleListProperty}
-                      className="w-full bg-primary hover:bg-primary-dark text-white"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      List Property
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button
-                      onClick={handleListProperty}
-                      className="w-full bg-primary hover:bg-primary-dark text-white"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      List Property
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => { navigate('/dashboard'); setIsMenuOpen(false); }}
+              </Link>
+              
+              <div className="pt-2 border-t">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    navigate('/list-property');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full mb-2"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  List Property
+                </Button>
+                
+                {user ? (
+                  <div className="space-y-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        navigate('/dashboard');
+                        setIsMobileMenuOpen(false);
+                      }}
                       className="w-full"
                     >
                       Dashboard
                     </Button>
-                    <Button
-                      variant="outline"
-                      onClick={handleSignOut}
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => {
+                        handleLogout();
+                        setIsMobileMenuOpen(false);
+                      }}
                       className="w-full"
                     >
-                      <LogOut className="w-4 h-4 mr-2" />
-                      Sign Out
+                      Logout
                     </Button>
-                  </>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => {
+                        onAuthClick('login');
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="w-full"
+                    >
+                      Login
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      onClick={() => {
+                        onAuthClick('signup');
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="w-full"
+                    >
+                      Sign Up
+                    </Button>
+                  </div>
                 )}
               </div>
             </div>
