@@ -54,6 +54,19 @@ const Header = ({ onAuthClick }: HeaderProps) => {
   };
 
   const isLandlord = userProfile?.role === 'landlord';
+  const isTenant = userProfile?.role === 'tenant';
+
+  // Determine which dashboard to navigate to based on user role
+  const handleDashboardClick = () => {
+    if (isTenant) {
+      navigate('/tenant-dashboard');
+    } else if (isLandlord) {
+      navigate('/dashboard');
+    } else {
+      // Default to tenant dashboard if role is unclear
+      navigate('/tenant-dashboard');
+    }
+  };
 
   return (
     <header className="bg-white shadow-sm border-b sticky top-0 z-50">
@@ -83,24 +96,28 @@ const Header = ({ onAuthClick }: HeaderProps) => {
 
           {/* Right side buttons */}
           <div className="flex items-center space-x-4">
-            {/* Notification Bell for Landlords */}
+            {/* Notification Bell for Landlords only */}
             {user && isLandlord && <NotificationBell />}
             
             {user ? (
               <div className="flex items-center space-x-3">
+                {/* List Property button - Only show for landlords or non-authenticated users */}
+                {isLandlord && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => navigate('/list-property')}
+                    className="hidden sm:flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    List Property
+                  </Button>
+                )}
+                
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => navigate('/list-property')}
-                  className="hidden sm:flex items-center gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  List Property
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => navigate('/dashboard')}
+                  onClick={handleDashboardClick}
                 >
                   Dashboard
                 </Button>
@@ -117,6 +134,7 @@ const Header = ({ onAuthClick }: HeaderProps) => {
               </div>
             ) : (
               <>
+                {/* List Property button for non-authenticated users */}
                 <Button 
                   variant="outline" 
                   size="sm"
@@ -183,18 +201,21 @@ const Header = ({ onAuthClick }: HeaderProps) => {
               </Link>
               
               <div className="pt-2 border-t">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => {
-                    navigate('/list-property');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="w-full mb-2"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  List Property
-                </Button>
+                {/* Mobile List Property button - Only show for landlords or non-authenticated users */}
+                {(!user || isLandlord) && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      navigate('/list-property');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full mb-2"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    List Property
+                  </Button>
+                )}
                 
                 {user ? (
                   <div className="space-y-2">
@@ -202,7 +223,7 @@ const Header = ({ onAuthClick }: HeaderProps) => {
                       variant="outline" 
                       size="sm"
                       onClick={() => {
-                        navigate('/dashboard');
+                        handleDashboardClick();
                         setIsMobileMenuOpen(false);
                       }}
                       className="w-full"

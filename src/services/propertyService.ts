@@ -54,10 +54,12 @@ export const fetchRandomProperty = async (): Promise<PropertyWithStats | null> =
 
     if (error || !data) return null;
 
-    const validStatuses: Array<'active' | 'inactive' | 'rented' | 'pending_review' | 'draft'> = 
-      ['active', 'inactive', 'rented', 'pending_review', 'draft'];
-    const status = validStatuses.includes(data.status as any) ? 
-      data.status as 'active' | 'inactive' | 'rented' | 'pending_review' | 'draft' : 'active';
+    // Properly type the status to match the expected union type
+    const validStatuses = ['active', 'inactive', 'rented', 'pending_review', 'draft'] as const;
+    type ValidStatus = typeof validStatuses[number];
+    
+    const status: ValidStatus = validStatuses.includes(data.status as ValidStatus) ? 
+      data.status as ValidStatus : 'active';
 
     return {
       id: data.id,
