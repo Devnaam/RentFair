@@ -132,8 +132,8 @@ export const fetchLandlordProperties = async (userId: string): Promise<PropertyW
         // Ensure status is properly typed with fallback
         const validStatuses: Array<'active' | 'inactive' | 'rented' | 'pending_review' | 'draft'> = 
           ['active', 'inactive', 'rented', 'pending_review', 'draft'];
-        const status = validStatuses.includes(listing.status as any) ? 
-          (listing.status as 'active' | 'inactive' | 'rented' | 'pending_review' | 'draft') : 'draft';
+        const status = validStatuses.includes(listing.status) ? 
+          listing.status as 'active' | 'inactive' | 'rented' | 'pending_review' | 'draft' : 'draft';
 
         return {
           id: listing.id,
@@ -211,8 +211,8 @@ export const fetchRandomProperty = async (): Promise<PropertyWithStats | null> =
 
     const validStatuses: Array<'active' | 'inactive' | 'rented' | 'pending_review' | 'draft'> = 
       ['active', 'inactive', 'rented', 'pending_review', 'draft'];
-    const status = validStatuses.includes(data.status as any) ? 
-      (data.status as 'active' | 'inactive' | 'rented' | 'pending_review' | 'draft') : 'active';
+    const status = validStatuses.includes(data.status) ? 
+      data.status as 'active' | 'inactive' | 'rented' | 'pending_review' | 'draft' : 'active';
 
     return {
       id: data.id,
