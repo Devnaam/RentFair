@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import ListProperty from "./pages/ListProperty";
 import FindRoom from "./pages/FindRoom";
 import Dashboard from "./pages/Dashboard";
+import TenantDashboard from "./pages/TenantDashboard";
 import PropertyDetails from "./pages/PropertyDetails";
 import Inquiries from "./pages/Inquiries";
 import Help from "./pages/Help";
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="/list-property" element={<ListProperty />} />
             <Route path="/find-room" element={<FindRoom />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/tenant-dashboard" element={<TenantDashboard />} />
             <Route path="/property/:id" element={<PropertyDetails />} />
             <Route path="/inquiries" element={<Inquiries />} />
             <Route path="/help" element={<Help />} />
