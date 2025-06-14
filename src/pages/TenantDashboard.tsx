@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Header from '@/components/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,16 +16,21 @@ import {
   Home,
   Bath,
   Reply,
-  CheckCircle
+  CheckCircle,
+  Send,
+  RefreshCw
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import AuthModal from '@/components/AuthModal';
-import { fetchTenantDashboardStats, fetchTenantInquiries } from '@/services/dashboardService';
+import { fetchTenantDashboardStats, fetchTenantInquiries, saveInquiryReply } from '@/services/dashboardService';
+import { useToast } from '@/hooks/use-toast';
 
 const TenantDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   const [authModal, setAuthModal] = useState<{
     isOpen: boolean;
@@ -35,15 +40,18 @@ const TenantDashboard = () => {
     type: 'login'
   });
 
+  const [replyMessages, setReplyMessages] = useState<{ [key: string]: string }>({});
+  const [sendingReply, setSendingReply] = useState<{ [key: string]: boolean }>({});
+
   // Fetch tenant dashboard statistics
-  const { data: stats, isLoading: statsLoading } = useQuery({
+  const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useQuery({
     queryKey: ['tenant-dashboard-stats', user?.id],
     queryFn: () => fetchTenantDashboardStats(user!.id),
     enabled: !!user?.id
   });
 
   // Fetch tenant inquiries
-  const { data: inquiries, isLoading: inquiriesLoading } = useQuery({
+  const { data: inquiries, isLoading: inquiriesLoading, refetch: refetchInquiries } = useQuery({
     queryKey: ['tenant-inquiries', user?.id],
     queryFn: () => fetchTenantInquiries(user!.id),
     enabled: !!user?.id
@@ -60,6 +68,68 @@ const TenantDashboard = () => {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString() + ' at ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const handleRefreshData = async () => {
+    try {
+      await Promise.all([refetchStats(), refetchInquiries()]);
+      toast({
+        title: "Data refreshed",
+        description: "Your dashboard has been updated with the latest information.",
+      });
+    } catch (error) {
+      toast({
+        title: "Refresh failed",
+        description: "Failed to refresh data. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSendReply = async (inquiryId: string) => {
+    const message = replyMessages[inquiryId]?.trim();
+    if (!message) {
+      toast({
+        title: "Message required",
+        description: "Please enter a message before sending.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSendingReply(prev => ({ ...prev, [inquiryId]: true }));
+
+    try {
+      await saveInquiryReply(inquiryId, message, 'tenant');
+      
+      // Clear the message
+      setReplyMessages(prev => ({ ...prev, [inquiryId]: '' }));
+      
+      // Refresh inquiries
+      await refetchInquiries();
+      
+      toast({
+        title: "Reply sent",
+        description: "Your reply has been sent to the landlord.",
+      });
+    } catch (error) {
+      console.error('Error sending reply:', error);
+      toast({
+        title: "Failed to send",
+        description: "Failed to send your reply. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingReply(prev => ({ ...prev, [inquiryId]: false }));
+    }
+  };
+
+  const handleViewProperty = (propertyId: string) => {
+    navigate(`/property/${propertyId}`);
+  };
+
+  const handleBrowseProperties = () => {
+    navigate('/find-room');
   };
 
   if (!user) {
@@ -99,10 +169,16 @@ const TenantDashboard = () => {
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Tenant Dashboard</h1>
             <p className="text-gray-600 text-sm sm:text-base">Welcome back! Track your property search and inquiries</p>
           </div>
-          <Button onClick={() => navigate('/find-room')} className="w-fit">
-            <Search className="w-4 h-4 mr-2" />
-            Find Properties
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleRefreshData} className="w-fit">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
+            </Button>
+            <Button onClick={handleBrowseProperties} className="w-fit">
+              <Search className="w-4 h-4 mr-2" />
+              Find Properties
+            </Button>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -254,14 +330,21 @@ const TenantDashboard = () => {
                           <div className="mb-3">
                             <h4 className="font-medium text-sm mb-2 flex items-center gap-1">
                               <Reply className="w-4 h-4 text-purple-600" />
-                              Landlord Replies:
+                              Conversation:
                             </h4>
                             <div className="space-y-2">
                               {inquiry.replies.map((reply: any) => (
-                                <div key={reply.id} className="bg-blue-50 p-2 sm:p-3 rounded-lg border-l-4 border-blue-500">
+                                <div 
+                                  key={reply.id} 
+                                  className={`p-2 sm:p-3 rounded-lg border-l-4 ${
+                                    reply.sender_type === 'landlord' 
+                                      ? 'bg-blue-50 border-blue-500' 
+                                      : 'bg-green-50 border-green-500'
+                                  }`}
+                                >
                                   <div className="flex items-center gap-2 mb-1">
                                     <Badge variant="outline" className="text-xs">
-                                      Landlord Reply
+                                      {reply.sender_type === 'landlord' ? 'Landlord' : 'You'}
                                     </Badge>
                                     <span className="text-xs text-gray-500">
                                       {formatDate(reply.created_at)}
@@ -276,12 +359,46 @@ const TenantDashboard = () => {
                           </div>
                         )}
 
+                        {/* Reply Input */}
+                        <div className="mb-3">
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              placeholder="Type your reply..."
+                              value={replyMessages[inquiry.id] || ''}
+                              onChange={(e) => setReplyMessages(prev => ({ 
+                                ...prev, 
+                                [inquiry.id]: e.target.value 
+                              }))}
+                              className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              onKeyPress={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                  e.preventDefault();
+                                  handleSendReply(inquiry.id);
+                                }
+                              }}
+                            />
+                            <Button
+                              size="sm"
+                              onClick={() => handleSendReply(inquiry.id)}
+                              disabled={sendingReply[inquiry.id] || !replyMessages[inquiry.id]?.trim()}
+                              className="text-xs sm:text-sm h-10"
+                            >
+                              {sendingReply[inquiry.id] ? (
+                                <RefreshCw className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Send className="w-4 h-4" />
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+
                         {/* Actions */}
                         <div className="flex flex-col sm:flex-row gap-2">
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => navigate(`/property/${inquiry.property_listings?.id}`)}
+                            onClick={() => handleViewProperty(inquiry.property_listings?.id)}
                             className="text-xs sm:text-sm h-8 sm:h-9"
                           >
                             View Property
@@ -289,13 +406,10 @@ const TenantDashboard = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => {
-                              // Navigate to property contact page or open inquiry form
-                              navigate(`/property/${inquiry.property_listings?.id}`);
-                            }}
+                            onClick={() => handleViewProperty(inquiry.property_listings?.id)}
                             className="text-xs sm:text-sm h-8 sm:h-9"
                           >
-                            Follow Up
+                            Contact Again
                           </Button>
                         </div>
                       </div>
@@ -310,7 +424,7 @@ const TenantDashboard = () => {
                 <p className="text-gray-600 mb-4 text-sm sm:text-base">
                   Start exploring properties and send inquiries to landlords.
                 </p>
-                <Button onClick={() => navigate('/find-room')}>
+                <Button onClick={handleBrowseProperties}>
                   <Search className="w-4 h-4 mr-2" />
                   Browse Properties
                 </Button>

@@ -133,7 +133,7 @@ export const fetchLandlordProperties = async (userId: string): Promise<PropertyW
         const validStatuses: Array<'active' | 'inactive' | 'rented' | 'pending_review' | 'draft'> = 
           ['active', 'inactive', 'rented', 'pending_review', 'draft'];
         const status = validStatuses.includes(listing.status as any) ? 
-          listing.status as 'active' | 'inactive' | 'rented' | 'pending_review' | 'draft' : 'draft';
+          (listing.status as 'active' | 'inactive' | 'rented' | 'pending_review' | 'draft') : 'draft';
 
         return {
           id: listing.id,
@@ -212,7 +212,7 @@ export const fetchRandomProperty = async (): Promise<PropertyWithStats | null> =
     const validStatuses: Array<'active' | 'inactive' | 'rented' | 'pending_review' | 'draft'> = 
       ['active', 'inactive', 'rented', 'pending_review', 'draft'];
     const status = validStatuses.includes(data.status as any) ? 
-      data.status as 'active' | 'inactive' | 'rented' | 'pending_review' | 'draft' : 'active';
+      (data.status as 'active' | 'inactive' | 'rented' | 'pending_review' | 'draft') : 'active';
 
     return {
       id: data.id,
@@ -279,24 +279,17 @@ export const fetchLandlordInquiries = async (userId: string) => {
           .eq('id', inquiry.tenant_id)
           .single();
 
-        // Fetch replies for this inquiry using raw SQL approach to avoid type issues
-        const { data: replies } = await supabase
-          .rpc('get_inquiry_replies', { inquiry_id: inquiry.id })
-          .then(result => result)
-          .catch(async () => {
-            // Fallback: use direct query with type assertion
-            const { data } = await (supabase as any)
-              .from('inquiry_replies')
-              .select('*')
-              .eq('inquiry_id', inquiry.id)
-              .order('created_at', { ascending: true });
-            return { data };
-          });
+        // Fetch replies for this inquiry
+        const { data: repliesData } = await supabase
+          .from('inquiry_replies')
+          .select('*')
+          .eq('inquiry_id', inquiry.id)
+          .order('created_at', { ascending: true });
 
         return {
           ...inquiry,
           profiles: profile || { name: null, email: null, phone: null },
-          replies: replies?.data || []
+          replies: repliesData || []
         };
       })
     );
@@ -346,18 +339,16 @@ export const fetchTenantInquiries = async (userId: string) => {
     // Fetch replies for each inquiry
     const inquiriesWithReplies = await Promise.all(
       (data || []).map(async (inquiry) => {
-        // Fetch replies for this inquiry using fallback approach
-        const { data: replies } = await (supabase as any)
+        // Fetch replies for this inquiry
+        const { data: repliesData } = await supabase
           .from('inquiry_replies')
           .select('*')
           .eq('inquiry_id', inquiry.id)
-          .order('created_at', { ascending: true })
-          .then((result: any) => result)
-          .catch(() => ({ data: [] }));
+          .order('created_at', { ascending: true });
 
         return {
           ...inquiry,
-          replies: replies || []
+          replies: repliesData || []
         };
       })
     );
@@ -372,7 +363,7 @@ export const fetchTenantInquiries = async (userId: string) => {
 // Function to save a reply to the database
 export const saveInquiryReply = async (inquiryId: string, message: string, senderType: 'landlord' | 'tenant') => {
   try {
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from('inquiry_replies')
       .insert({
         inquiry_id: inquiryId,
@@ -414,14 +405,22 @@ export const fetchTenantDashboardStats = async (userId: string) => {
     const { data: inquiriesWithReplies } = await supabase
       .from('property_inquiries')
       .select(`
-        id,
-        inquiry_replies!inner(id)
+        id
       `)
-      .eq('tenant_id', userId)
-      .then(result => result)
-      .catch(() => ({ data: [] }));
+      .eq('tenant_id', userId);
 
-    const respondedInquiries = inquiriesWithReplies?.length || 0;
+    // For each inquiry, check if it has replies
+    const inquiriesWithRepliesCount = await Promise.all(
+      (inquiriesWithReplies || []).map(async (inquiry) => {
+        const { count } = await supabase
+          .from('inquiry_replies')
+          .select('*', { count: 'exact', head: true })
+          .eq('inquiry_id', inquiry.id);
+        return count && count > 0;
+      })
+    );
+
+    const respondedInquiries = inquiriesWithRepliesCount.filter(Boolean).length;
 
     return {
       totalInquiries: totalInquiries || 0,
