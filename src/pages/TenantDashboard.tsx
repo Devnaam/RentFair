@@ -14,7 +14,9 @@ import {
   MapPin,
   IndianRupee,
   Home,
-  Bath
+  Bath,
+  Reply,
+  CheckCircle
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -137,12 +139,12 @@ const TenantDashboard = () => {
             <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs sm:text-sm font-medium text-gray-600">Favorites</p>
+                  <p className="text-xs sm:text-sm font-medium text-gray-600">Responded</p>
                   <p className="text-xl sm:text-2xl font-bold">
-                    {statsLoading ? '...' : stats?.favoriteProperties || 0}
+                    {statsLoading ? '...' : stats?.respondedInquiries || 0}
                   </p>
                 </div>
-                <Heart className="w-6 h-6 sm:w-8 sm:h-8 text-red-600" />
+                <Reply className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
               </div>
             </CardContent>
           </Card>
@@ -211,9 +213,17 @@ const TenantDashboard = () => {
                               </span>
                             </div>
                           </div>
-                          <Badge variant="outline" className="text-xs w-fit">
-                            Sent {formatDate(inquiry.created_at)}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs w-fit">
+                              Sent {formatDate(inquiry.created_at)}
+                            </Badge>
+                            {inquiry.replies && inquiry.replies.length > 0 && (
+                              <Badge className="text-xs bg-green-100 text-green-800 border-green-200 w-fit">
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                Replied
+                              </Badge>
+                            )}
+                          </div>
                         </div>
 
                         {/* Property Stats */}
@@ -238,6 +248,33 @@ const TenantDashboard = () => {
                             <strong>Your message:</strong> {inquiry.message}
                           </p>
                         </div>
+
+                        {/* Replies */}
+                        {inquiry.replies && inquiry.replies.length > 0 && (
+                          <div className="mb-3">
+                            <h4 className="font-medium text-sm mb-2 flex items-center gap-1">
+                              <Reply className="w-4 h-4 text-purple-600" />
+                              Landlord Replies:
+                            </h4>
+                            <div className="space-y-2">
+                              {inquiry.replies.map((reply: any) => (
+                                <div key={reply.id} className="bg-blue-50 p-2 sm:p-3 rounded-lg border-l-4 border-blue-500">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <Badge variant="outline" className="text-xs">
+                                      Landlord Reply
+                                    </Badge>
+                                    <span className="text-xs text-gray-500">
+                                      {formatDate(reply.created_at)}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">
+                                    {reply.message}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
 
                         {/* Actions */}
                         <div className="flex flex-col sm:flex-row gap-2">

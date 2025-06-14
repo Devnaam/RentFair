@@ -18,7 +18,8 @@ import {
   Home,
   Bath,
   Eye,
-  Bell
+  Bell,
+  Reply
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -70,9 +71,11 @@ const Inquiries = () => {
     onSuccess: () => {
       toast({
         title: "Reply sent successfully",
-        description: "Your reply has been sent to the tenant via email."
+        description: "Your reply has been sent to the tenant."
       });
       setReplyText({});
+      // Refetch inquiries to show the new reply
+      queryClient.invalidateQueries({ queryKey: ['landlord-inquiries'] });
     },
     onError: (error: any) => {
       toast({
@@ -173,20 +176,6 @@ const Inquiries = () => {
           )}
         </div>
 
-        {/* Debug info - only in development */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mb-4 p-4 bg-blue-50 rounded-lg">
-            <p className="text-sm text-blue-700">
-              Debug: Found {inquiries?.length || 0} inquiries for user {user.id}
-            </p>
-            {error && (
-              <p className="text-sm text-red-700 mt-2">
-                Error: {error.message}
-              </p>
-            )}
-          </div>
-        )}
-
         {/* Inquiries List */}
         {isLoading ? (
           <div className="space-y-4">
@@ -219,7 +208,7 @@ const Inquiries = () => {
                           </h3>
                           <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200 w-fit">
                             <Bell className="w-3 h-3 mr-1" />
-                            New Inquiry
+                            {inquiry.replies?.length > 0 ? 'Replied' : 'New Inquiry'}
                           </Badge>
                         </div>
                         <p className="text-xs sm:text-sm text-gray-600 truncate">
@@ -331,6 +320,33 @@ const Inquiries = () => {
                       </p>
                     </div>
                   </div>
+
+                  {/* Previous Replies */}
+                  {inquiry.replies && inquiry.replies.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold mb-3 flex items-center gap-2 text-sm sm:text-base">
+                        <Reply className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
+                        Previous Replies:
+                      </h4>
+                      <div className="space-y-3">
+                        {inquiry.replies.map((reply: any) => (
+                          <div key={reply.id} className="bg-purple-50 p-3 rounded-lg border-l-4 border-purple-500">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Badge variant="outline" className="text-xs">
+                                {reply.sender_type === 'landlord' ? 'You' : 'Tenant'}
+                              </Badge>
+                              <span className="text-xs text-gray-500">
+                                {formatDate(reply.created_at)}
+                              </span>
+                            </div>
+                            <p className="text-gray-700 text-sm break-words">
+                              {reply.message}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Reply Section */}
                   <div className="border-t pt-4 sm:pt-6">

@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 export interface DashboardStats {
@@ -131,9 +132,8 @@ export const fetchLandlordProperties = async (userId: string): Promise<PropertyW
         // Ensure status is properly typed with fallback
         const validStatuses: Array<'active' | 'inactive' | 'rented' | 'pending_review' | 'draft'> = 
           ['active', 'inactive', 'rented', 'pending_review', 'draft'];
-        const status = validStatuses.includes(listing.status as any) ? 
-          listing.status as 'active' | 'inactive' | 'rented' | 'pending_review' | 'draft' : 
-          'draft';
+        const status = validStatuses.includes(listing.status) ? 
+          listing.status : 'draft';
 
         return {
           id: listing.id,
@@ -211,9 +211,8 @@ export const fetchRandomProperty = async (): Promise<PropertyWithStats | null> =
 
     const validStatuses: Array<'active' | 'inactive' | 'rented' | 'pending_review' | 'draft'> = 
       ['active', 'inactive', 'rented', 'pending_review', 'draft'];
-    const status = validStatuses.includes(data.status as any) ? 
-      data.status as 'active' | 'inactive' | 'rented' | 'pending_review' | 'draft' : 
-      'active';
+    const status = validStatuses.includes(data.status) ? 
+      data.status : 'active';
 
     return {
       id: data.id,
@@ -233,7 +232,7 @@ export const fetchRandomProperty = async (): Promise<PropertyWithStats | null> =
   }
 };
 
-// Fixed function to fetch detailed inquiries for landlord
+// Function to fetch detailed inquiries for landlord with replies
 export const fetchLandlordInquiries = async (userId: string) => {
   try {
     console.log('Fetching detailed inquiries for landlord:', userId);
@@ -271,8 +270,8 @@ export const fetchLandlordInquiries = async (userId: string) => {
       throw error;
     }
 
-    // Now fetch tenant profiles separately for each inquiry
-    const inquiriesWithProfiles = await Promise.all(
+    // Now fetch tenant profiles and replies for each inquiry
+    const inquiriesWithProfilesAndReplies = await Promise.all(
       (data || []).map(async (inquiry) => {
         const { data: profile } = await supabase
           .from('profiles')
@@ -280,22 +279,30 @@ export const fetchLandlordInquiries = async (userId: string) => {
           .eq('id', inquiry.tenant_id)
           .single();
 
+        // Fetch replies for this inquiry
+        const { data: replies } = await supabase
+          .from('inquiry_replies')
+          .select('*')
+          .eq('inquiry_id', inquiry.id)
+          .order('created_at', { ascending: true });
+
         return {
           ...inquiry,
-          profiles: profile || { name: null, email: null, phone: null }
+          profiles: profile || { name: null, email: null, phone: null },
+          replies: replies || []
         };
       })
     );
     
-    console.log('Final inquiries with profiles:', inquiriesWithProfiles);
-    return inquiriesWithProfiles;
+    console.log('Final inquiries with profiles and replies:', inquiriesWithProfilesAndReplies);
+    return inquiriesWithProfilesAndReplies;
   } catch (error) {
     console.error('Error in fetchLandlordInquiries:', error);
     throw error;
   }
 };
 
-// Function to fetch tenant inquiries
+// Function to fetch tenant inquiries with replies
 export const fetchTenantInquiries = async (userId: string) => {
   try {
     const { data, error } = await supabase
@@ -329,9 +336,48 @@ export const fetchTenantInquiries = async (userId: string) => {
       throw error;
     }
 
-    return data || [];
+    // Fetch replies for each inquiry
+    const inquiriesWithReplies = await Promise.all(
+      (data || []).map(async (inquiry) => {
+        // Fetch replies for this inquiry
+        const { data: replies } = await supabase
+          .from('inquiry_replies')
+          .select('*')
+          .eq('inquiry_id', inquiry.id)
+          .order('created_at', { ascending: true });
+
+        return {
+          ...inquiry,
+          replies: replies || []
+        };
+      })
+    );
+
+    return inquiriesWithReplies;
   } catch (error) {
     console.error('Error in fetchTenantInquiries:', error);
+    throw error;
+  }
+};
+
+// Function to save a reply to the database
+export const saveInquiryReply = async (inquiryId: string, message: string, senderType: 'landlord' | 'tenant') => {
+  try {
+    const { data, error } = await supabase
+      .from('inquiry_replies')
+      .insert({
+        inquiry_id: inquiryId,
+        message,
+        sender_type: senderType,
+        created_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error saving inquiry reply:', error);
     throw error;
   }
 };
@@ -355,9 +401,21 @@ export const fetchTenantDashboardStats = async (userId: string) => {
       .eq('tenant_id', userId)
       .gte('created_at', sevenDaysAgo.toISOString());
 
+    // Count inquiries with replies (responded inquiries)
+    const { data: inquiriesWithReplies } = await supabase
+      .from('property_inquiries')
+      .select(`
+        id,
+        inquiry_replies!inner(id)
+      `)
+      .eq('tenant_id', userId);
+
+    const respondedInquiries = inquiriesWithReplies?.length || 0;
+
     return {
       totalInquiries: totalInquiries || 0,
       recentInquiries: recentInquiries || 0,
+      respondedInquiries,
       favoriteProperties: 0, // Can be implemented later
       viewedProperties: 0, // Can be implemented later
     };
@@ -366,6 +424,7 @@ export const fetchTenantDashboardStats = async (userId: string) => {
     return {
       totalInquiries: 0,
       recentInquiries: 0,
+      respondedInquiries: 0,
       favoriteProperties: 0,
       viewedProperties: 0,
     };
